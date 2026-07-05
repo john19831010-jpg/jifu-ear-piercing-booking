@@ -1,0 +1,482 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>吉富珠寶銀樓 | 專業防敏無痛穿耳預約系統</title>
+  <link rel="stylesheet" href="style.css">
+  <!-- 引入 SheetJS 用於匯出 Excel 報表 -->
+  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+</head>
+<body>
+
+  <!-- 顧客端導航列 -->
+  <header id="client-header">
+    <div class="container nav-container">
+      <a href="#" class="logo">
+        <div class="logo-icon">吉</div>
+        <span>吉富珠寶銀樓 <span class="gold-text" style="font-size: 0.8rem; font-weight: 500;">穿耳專區</span></span>
+      </a>
+      <nav>
+        <ul>
+          <li><a href="#materials">耳針材質</a></li>
+          <li><a href="#care-steps">保養說明</a></li>
+          <li><a href="#booking-form">立即預約</a></li>
+          <li><a href="#admin" class="dark-btn" style="padding: 6px 16px; font-size: 0.85rem;" onclick="showAdminSection()">管理登入</a></li>
+        </ul>
+      </nav>
+    </div>
+  </header>
+
+  <!-- 主顧客介面 -->
+  <main id="client-section">
+    <!-- Hero 視覺區 -->
+    <section class="hero container">
+      <div class="badge">✨ 實體金店面保證・安全衛生防敏</div>
+      <p class="hero-subtitle">Professional Ear Piercing</p>
+      <h1>精緻工藝・<span class="gold-text">專業防敏無痛穿耳</span></h1>
+      <p class="hero-description">
+        新北新莊在地經營「吉富珠寶銀樓」。我們提供無菌、衛生的穿耳服務。<b>穿耳洞完全免費</b>，您只需依照個人喜好挑選耳針材質與款式。
+      </p>
+      <div style="display: flex; justify-content: center; gap: 16px;">
+        <a href="#booking-form" class="gold-btn">立即線上預約 ➔</a>
+        <a href="#materials" class="dark-btn">了解材質與價格</a>
+      </div>
+    </section>
+
+    <!-- 材質與收費科普區 -->
+    <section id="materials" class="section container">
+      <div class="section-header">
+        <h2>耳針材質與費用</h2>
+        <p>我們只收取耳針的材料工本費，穿耳服務完全免費</p>
+      </div>
+      <div class="pricing-grid">
+        <!-- 醫學鋼 基礎 -->
+        <div class="price-card glass-panel">
+          <div class="card-icon">🛡️</div>
+          <h3 class="card-title">醫學鋼 <span style="font-size: 0.85rem; color: var(--text-secondary);">基礎款</span></h3>
+          <p class="card-desc">採用 316L 醫療級不鏽鋼，堅硬耐磨，抗氧化，適合一般大眾與初次穿耳者，是經典的高性價比防敏選擇。</p>
+          <div class="card-price">500 <span>元 / 一對</span></div>
+        </div>
+        <!-- 醫學鋼 進階 -->
+        <div class="price-card glass-panel">
+          <div class="tag-popular">熱門推薦</div>
+          <div class="card-icon">💎</div>
+          <h3 class="card-title">醫學鋼 <span style="font-size: 0.85rem; color: var(--gold-light);">進階樣式款</span></h3>
+          <p class="card-desc">與基礎款相同的醫學鋼材質，但搭配更多元精緻的微鑲水鑽與造型設計，讓您在修護期也能維持美麗穿搭。</p>
+          <div class="card-price">800 <span>元 / 一對</span></div>
+        </div>
+        <!-- 鈦 -->
+        <div class="price-card glass-panel">
+          <div class="card-icon">🧬</div>
+          <h3 class="card-title">純鈦金屬 <span style="font-size: 0.85rem; color: var(--text-secondary);">極致防敏</span></h3>
+          <p class="card-desc">超輕量高強度金屬，具備極佳的生物相容性，極低過敏率，非常適合敏感性肌膚與容易發炎的體質。</p>
+          <div class="card-price">1,200 <span>元 / 一對</span></div>
+        </div>
+        <!-- 14K金 -->
+        <div class="price-card glass-panel">
+          <div class="card-icon">👑</div>
+          <h3 class="card-title">14K 純金 <span style="font-size: 0.85rem; color: var(--text-secondary);">奢華抗敏</span></h3>
+          <p class="card-desc">採用真金材質（14K），極佳的親膚性，傷口癒合速度最快，防敏效果絕佳。具備珠寶保值與高貴質感。</p>
+          <div class="card-price" style="font-size: 1.5rem;">2,400 起 <span>元/對</span></div>
+          <div style="font-size: 0.8rem; color: var(--text-muted); margin-top: 4px;">另有精緻樣式款式：2,800 元/對</div>
+        </div>
+      </div>
+      
+      <!-- 加購保養液說明 -->
+      <div class="glass-panel" style="margin-top: 32px; padding: 24px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 16px; border-left: 4px solid var(--gold-primary);">
+        <div>
+          <h4 style="font-size: 1.1rem; margin-bottom: 4px;">🧪 加購「專業耳洞保養藥水」只要 <span class="gold-text" style="font-weight: 700;">$80</span> 元</h4>
+          <p style="font-size: 0.9rem; color: var(--text-secondary);">專為新穿耳洞研發的無刺激防護配方，能舒緩傷口不適，加速耳洞定型，建議穿耳時順手帶一瓶。</p>
+        </div>
+        <a href="#booking-form" class="gold-btn" style="padding: 8px 20px; font-size: 0.9rem;">我要預約</a>
+      </div>
+    </section>
+
+    <!-- 保養與注意事項 -->
+    <section id="care-steps" class="section container" style="background: rgba(255,255,255,0.01); border-top: 1px solid rgba(255,255,255,0.03); border-bottom: 1px solid rgba(255,255,255,0.03);">
+      <div class="section-header">
+        <h2>穿耳後保養與注意事項</h2>
+        <p>細心照護傷口，讓您的耳洞健康成型、不發炎</p>
+      </div>
+      <div class="care-info-layout">
+        <!-- 保養步驟 -->
+        <div>
+          <h3 style="font-size: 1.3rem; margin-bottom: 24px; display: flex; align-items: center; gap: 10px;">
+            <span style="color: var(--gold-primary);">✨</span> 穿耳洞保養 4 步驟
+          </h3>
+          <div class="care-steps">
+            <div class="step-card glass-panel">
+              <div class="step-num">1</div>
+              <div class="step-content">
+                <h3>盥洗完畢，徹底用乾</h3>
+                <p>凡是傷口碰到任何液體（例如：洗臉、洗頭、洗澡、流汗等），盥洗或運動完畢後，請務必先用乾淨的紙巾將傷口完全「用乾」。</p>
+              </div>
+            </div>
+            <div class="step-card glass-panel">
+              <div class="step-num">2</div>
+              <div class="step-content">
+                <h3>使用保養藥水並輕轉耳針</h3>
+                <p>將雙手徹底洗淨後，將保養藥水滴在耳洞傷口附近，並輕輕「轉動耳針」改變耳針的位置。這樣做能讓藥水均勻滲入，且防止傷口結痂時把耳針與肉黏在一起。</p>
+              </div>
+            </div>
+            <div class="step-card glass-panel">
+              <div class="step-num">3</div>
+              <div class="step-content">
+                <h3>等待吸收，再次用乾</h3>
+                <p>滴完藥水後，靜待約 10 秒鐘讓傷口與管道充分吸收藥水，接著再次使用乾淨紙巾將耳洞周圍「用乾」，保持絕對乾燥。</p>
+              </div>
+            </div>
+            <div class="step-card glass-panel">
+              <div class="step-num">4</div>
+              <div class="step-content">
+                <h3>塗抹薄薄金黴素</h3>
+                <p>最後，使用乾淨棉花棒沾取少量的「金黴素」眼藥膏，輕輕塗抹在耳洞傷口周圍，做為最後一層抗菌隔離防護。</p>
+              </div>
+            </div>
+          </div>
+        </div>
+        
+        <!-- 注意事項 -->
+        <div>
+          <div class="notice-box glass-panel" style="height: 100%; border-color: rgba(255, 69, 58, 0.25);">
+            <h3 style="color: #FF453A; border-color: #FF453A;">⚠️ 日常注意事項</h3>
+            <div class="notice-item">
+              <div class="notice-icon">🗓️</div>
+              <div class="notice-text">
+                <h4>穿耳環需配戴滿 1 個月</h4>
+                <p>剛穿好的耳洞需要約一個月的時間讓內部管道皮層成型。在此期間，<b>絕對不要自行拆下或更換耳針</b>，否則耳洞會極速閉合或受傷。</p>
+              </div>
+            </div>
+            <div class="notice-item">
+              <div class="notice-icon">🏊</div>
+              <div class="notice-text">
+                <h4>穿耳後 1 個星期內不能游泳</h4>
+                <p>穿耳後的頭一個星期是黃金修護期，傷口尚未閉合。這段時間請<b>避免前往游泳池、海邊或泡溫泉</b>，防範水中的細菌引起傷口感染發炎。</p>
+              </div>
+            </div>
+            <div class="notice-item">
+              <div class="notice-icon">💬</div>
+              <div class="notice-text">
+                <h4>有紅腫發炎請即刻處理</h4>
+                <p>若耳洞出現持續性發紅、發熱、異常腫痛或流膿，請立刻聯絡本店，或尋求專業皮膚科醫生協助。</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 預約表單 -->
+    <section id="booking-form" class="section container booking-section">
+      <div class="section-header">
+        <h2>立即預約穿耳服務</h2>
+        <p>請填寫以下資訊，完成後請複製預約格式並發送至本店 LINE 客服</p>
+      </div>
+      <div class="booking-wrapper glass-panel">
+        <form id="piercing-form" onsubmit="handleFormSubmit(event)">
+          <div class="form-grid">
+            <div class="form-group">
+              <label for="cust-name">姓名 (必填)</label>
+              <input type="text" id="cust-name" required placeholder="例如：王小明">
+            </div>
+            <div class="form-group">
+              <label for="cust-phone">手機號碼 (必填)</label>
+              <input type="tel" id="cust-phone" required placeholder="例如：0912345678" pattern="[0-9]{10}">
+            </div>
+            <div class="form-group">
+              <label for="cust-line">LINE ID (選填，方便通知)</label>
+              <input type="text" id="cust-line" placeholder="例如：line12345">
+            </div>
+            <div class="form-group">
+              <label for="cust-material">預計選擇耳針材質</label>
+              <select id="cust-material" required>
+                <option value="" disabled selected>請選擇耳針材質</option>
+                <option value="醫學鋼基礎款 ($500)">醫學鋼 基礎款 ($500)</option>
+                <option value="醫學鋼進階款 ($800)">醫學鋼 進階樣式款 ($800)</option>
+                <option value="純鈦金屬抗敏款 ($1200)">純鈦金屬 抗敏款 ($1200)</option>
+                <option value="14K金奢華款 ($2400)">14K金 奢華款 ($2400)</option>
+                <option value="14K金奢華款 ($2800)">14K金 奢華款 ($2800)</option>
+                <option value="現場挑選樣式">現場參觀再決定</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label for="booking-date">預約日期</label>
+              <input type="date" id="booking-date" required>
+            </div>
+            <div class="form-group">
+              <label for="booking-time">預約時段</label>
+              <select id="booking-time" required disabled>
+                <option value="">請先選擇日期</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label>穿耳洞位置 (可複選)</label>
+              <div style="display: flex; gap: 16px; flex-wrap: wrap; margin-top: 6px;">
+                <label class="checkbox-label"><input type="checkbox" name="position" value="耳垂"> 耳垂</label>
+                <label class="checkbox-label"><input type="checkbox" name="position" value="耳骨"> 耳骨</label>
+                <label class="checkbox-label"><input type="checkbox" name="position" value="小耳朵"> 小耳朵</label>
+                <label class="checkbox-label"><input type="checkbox" name="position" value="其他"> 其他</label>
+              </div>
+            </div>
+            <div class="form-group" style="justify-content: center;">
+              <label class="checkbox-label" style="margin-top: 24px;">
+                <input type="checkbox" id="add-potion" value="yes"> 加購耳洞保養藥水 ($80)
+              </label>
+            </div>
+            <div class="form-group full-width">
+              <label for="cust-note">特殊備註 (例如：會對金屬嚴重過敏、想諮詢項目...)</label>
+              <textarea id="cust-note" rows="3" placeholder="若有特殊需求請寫在這裡..."></textarea>
+            </div>
+          </div>
+          <div class="form-actions">
+            <button type="submit" class="gold-btn" style="width: 100%; max-width: 300px; font-size: 1.1rem; padding: 14px;">確認送出預約</button>
+            <p>※ 穿耳洞完全免費，材料費現場付款即可</p>
+          </div>
+        </form>
+      </div>
+    </section>
+  </main>
+
+  <!-- 預約成功彈出視窗 -->
+  <div class="modal-overlay" id="success-modal">
+    <div class="modal glass-panel">
+      <div class="modal-icon">✓</div>
+      <h3>預約送出成功！</h3>
+      <p>請複製下方預約資料，發送至吉富珠寶 LINE 客服，我們將為您保留名額並確認！</p>
+      <div class="copy-area" id="line-text-area">
+        <!-- LINE 文字內容 -->
+      </div>
+      <div class="modal-buttons">
+        <button class="gold-btn" onclick="copyLineText()">一鍵複製 LINE 文字</button>
+        <button class="dark-btn" onclick="closeSuccessModal()">關閉視窗</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ================= 管理後端介面 ================= -->
+  <main id="admin-section" class="admin-section container">
+    <!-- 登入視窗 -->
+    <div id="admin-login-card" class="login-wrapper glass-panel">
+      <h2>員工安全登入</h2>
+      <div class="form-group">
+        <label for="admin-pass">請輸入後台存取密碼</label>
+        <input type="password" id="admin-pass" placeholder="請輸入密碼">
+      </div>
+      <button class="gold-btn" style="width: 100%;" onclick="handleAdminLogin()">登入管理後台</button>
+      <button class="dark-btn" style="width: 100%; margin-top: 12px;" onclick="hideAdminSection()">返回顧客首頁</button>
+    </div>
+
+    <!-- 後台主要面板 -->
+    <div id="admin-main-panel" style="display: none;">
+      <div class="admin-header">
+        <div>
+          <h1 class="gold-text">吉富珠寶銀樓 - 管理後台</h1>
+          <p style="color: var(--text-secondary); font-size: 0.9rem;">管理顧客預約與自訂營業時間設定</p>
+        </div>
+        <button class="dark-btn" onclick="handleAdminLogout()">登出後台</button>
+      </div>
+
+      <!-- 分頁切換鈕 -->
+      <div class="admin-tabs">
+        <button class="admin-tab active" id="tab-btn-list" onclick="switchAdminTab('list')">📅 預約名單管理</button>
+        <button class="admin-tab" id="tab-btn-settings" onclick="switchAdminTab('settings')">⚙️ 預約時間設定</button>
+      </div>
+
+      <!-- 分頁 1: 預約名單管理 -->
+      <div class="tab-content active" id="tab-list">
+        <div class="admin-controls">
+          <div class="search-filter">
+            <input type="text" id="filter-search" placeholder="搜尋姓名/電話..." oninput="renderBookingList()">
+            <input type="date" id="filter-date" onchange="renderBookingList()">
+            <select id="filter-status" onchange="renderBookingList()">
+              <option value="">所有狀態</option>
+              <option value="待確認">待確認</option>
+              <option value="已確認">已確認</option>
+              <option value="已完成">已完成</option>
+              <option value="已取消">已取消</option>
+            </select>
+            <button class="dark-btn" style="padding: 8px 16px; font-size: 0.9rem;" onclick="clearFilters()">重設篩選</button>
+          </div>
+          <div style="display: flex; gap: 12px;">
+            <button class="gold-btn" style="padding: 10px 20px; font-size: 0.9rem;" onclick="exportBookingsToExcel()">📥 匯出 Excel (.xlsx)</button>
+          </div>
+        </div>
+
+        <div class="admin-grid">
+          <!-- 預約名單表格 -->
+          <div class="glass-panel" style="padding: 24px; grid-column: span 2;">
+            <h3 style="margin-bottom: 16px;">顧客預約名單</h3>
+            <div class="table-responsive">
+              <table>
+                <thead>
+                  <tr>
+                    <th>預約日期/時間</th>
+                    <th>顧客資訊</th>
+                    <th>項目與材質</th>
+                    <th>藥水</th>
+                    <th>總估計金額</th>
+                    <th>狀態</th>
+                    <th>備註與操作</th>
+                  </tr>
+                </thead>
+                <tbody id="booking-table-body">
+                  <!-- 預約資料列 -->
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <!-- 手動新增預約表單 -->
+          <div class="glass-panel" style="padding: 32px; grid-column: span 2; margin-top: 16px;">
+            <h3 style="margin-bottom: 16px; border-left: 3px solid var(--gold-primary); padding-left: 12px;">✏️ 商家手動新增預約 (電話/現場客)</h3>
+            <form id="admin-manual-form" onsubmit="handleManualSubmit(event)">
+              <div class="form-grid">
+                <div class="form-group">
+                  <label for="manual-name">顧客姓名 (必填)</label>
+                  <input type="text" id="manual-name" required placeholder="例如：李小姐">
+                </div>
+                <div class="form-group">
+                  <label for="manual-phone">手機號碼 (必填)</label>
+                  <input type="tel" id="manual-phone" required placeholder="例如：09xxxxxxxx">
+                </div>
+                <div class="form-group">
+                  <label for="manual-material">選擇耳針材質</label>
+                  <select id="manual-material" required>
+                    <option value="醫學鋼基礎款 ($500)">醫學鋼 基礎款 ($500)</option>
+                    <option value="醫學鋼進階款 ($800)">醫學鋼 進階樣式款 ($800)</option>
+                    <option value="純鈦金屬抗敏款 ($1200)">純鈦金屬 抗敏款 ($1200)</option>
+                    <option value="14K金奢華款 ($2400)">14K金 奢華款 ($2400)</option>
+                    <option value="14K金奢華款 ($2800)">14K金 奢華款 ($2800)</option>
+                    <option value="現場挑選樣式">現場挑選樣式</option>
+                  </select>
+                </div>
+                <div class="form-group">
+                  <label for="manual-date">預約日期</label>
+                  <input type="date" id="manual-date" required onchange="updateManualTimeOptions()">
+                </div>
+                <div class="form-group">
+                  <label for="manual-time">預約時段</label>
+                  <select id="manual-time" required>
+                    <option value="">請先選擇日期</option>
+                  </select>
+                </div>
+                <div class="form-group" style="justify-content: center; display: flex; align-items: center;">
+                  <label class="checkbox-label">
+                    <input type="checkbox" id="manual-potion" value="yes"> 加購保養藥水 ($80)
+                  </label>
+                </div>
+                <div class="form-group">
+                  <label>穿耳洞位置</label>
+                  <input type="text" id="manual-position" placeholder="例如：雙耳耳垂、單邊耳骨">
+                </div>
+                <div class="form-group">
+                  <label for="manual-note">內部備註 (例如：現場客已穿完、週六要提早等)</label>
+                  <input type="text" id="manual-note" placeholder="商家備註...">
+                </div>
+              </div>
+              <div style="text-align: right;">
+                <button type="submit" class="gold-btn">建立預約資料</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      </div>
+
+      <!-- 分頁 2: 預約時間設定 -->
+      <div class="tab-content" id="tab-settings">
+        <div class="admin-grid" style="grid-template-columns: 1fr;">
+          <div class="glass-panel time-config-card">
+            <h3 style="margin-bottom: 12px; border-left: 3px solid var(--gold-primary); padding-left: 12px;">⚙️ 開放預約時間段設定 (瀏覽器自動記憶)</h3>
+            <p style="color: var(--text-secondary); font-size: 0.9rem; margin-bottom: 24px;">
+              在此處設定您方便穿耳洞的營業時間。設定儲存後，前台客人的預約表單會即時跟著改變。
+            </p>
+            
+            <div class="form-group">
+              <label><b>1. 開放營業日 (星期幾開放預約)</b></label>
+              <div class="weekday-selector">
+                <label class="checkbox-label"><input type="checkbox" class="config-day" value="1" checked> 週一</label>
+                <label class="checkbox-label"><input type="checkbox" class="config-day" value="2" checked> 週二</label>
+                <label class="checkbox-label"><input type="checkbox" class="config-day" value="3" checked> 週三</label>
+                <label class="checkbox-label"><input type="checkbox" class="config-day" value="4" checked> 週四</label>
+                <label class="checkbox-label"><input type="checkbox" class="config-day" value="5" checked> 週五</label>
+                <label class="checkbox-label"><input type="checkbox" class="config-day" value="6" checked> 週六</label>
+                <label class="checkbox-label"><input type="checkbox" class="config-day" value="0"> 週日</label>
+              </div>
+            </div>
+
+            <div class="form-group" style="margin-top: 24px;">
+              <label><b>2. 每日預約時間區間</b></label>
+              <div class="time-range-row">
+                <div>
+                  <span style="font-size: 0.9rem; color: var(--text-secondary);">開始營業時間：</span>
+                  <select id="config-start-time">
+                    <option value="09:00">09:00</option>
+                    <option value="09:30">09:30</option>
+                    <option value="10:00">10:00</option>
+                    <option value="10:30">10:30</option>
+                    <option value="11:00">11:00</option>
+                    <option value="11:30" selected>11:30</option>
+                    <option value="12:00">12:00</option>
+                    <option value="13:00">13:00</option>
+                    <option value="14:00">14:00</option>
+                  </select>
+                </div>
+                <div style="color: var(--gold-primary); font-weight: bold;">至</div>
+                <div>
+                  <span style="font-size: 0.9rem; color: var(--text-secondary);">結束營業時間：</span>
+                  <select id="config-end-time">
+                    <option value="17:00">17:00</option>
+                    <option value="18:00">18:00</option>
+                    <option value="19:00">19:00</option>
+                    <option value="20:00">20:00</option>
+                    <option value="20:30" selected>20:30</option>
+                    <option value="21:00">21:00</option>
+                    <option value="21:30">21:30</option>
+                    <option value="22:00">22:00</option>
+                  </select>
+                </div>
+                <div>
+                  <span style="font-size: 0.9rem; color: var(--text-secondary);">時段間隔：</span>
+                  <select id="config-slot-interval">
+                    <option value="30">每 30 分鐘</option>
+                    <option value="60" selected>每 60 分鐘 (整點)</option>
+                    <option value="90">每 90 分鐘</option>
+                    <option value="120">每 2 小時</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+
+            <div style="margin-top: 36px; display: flex; gap: 16px;">
+              <button class="gold-btn" onclick="saveTimeSettings()">💾 儲存設定並記憶</button>
+              <button class="dark-btn" onclick="resetTimeSettingsDefault()">回復系統預設值</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <!-- 顧客端頁尾 -->
+  <footer>
+    <div class="container">
+      <div class="footer-nav">
+        <a href="#materials">材質介紹</a>
+        <span>|</span>
+        <a href="#care-steps">保養守則</a>
+        <span>|</span>
+        <a href="#booking-form">線上預約</a>
+        <span>|</span>
+        <span class="admin-trigger" onclick="showAdminSection()">吉富員工專區</span>
+      </div>
+      <p style="margin-bottom: 8px;">吉富珠寶銀樓 © <span class="en-num">2026</span> 版權所有</p>
+      <p style="font-size: 0.75rem; color: var(--text-muted);">新北市新莊區在地實體銀樓做保證，提供完善的售後保養服務</p>
+    </div>
+  </footer>
+
+  <!-- 引入預約系統腳本 -->
+  <script src="export.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
