@@ -28,7 +28,6 @@ let bookingsList = JSON.parse(localStorage.getItem("jifu_piercing_bookings")) ||
 // 初始化網頁設定
 document.addEventListener("DOMContentLoaded", () => {
   initClientPage();
-  initAdminPage();
   
   // 監聽網址 Hash 變化，用於切換後台入口
   window.addEventListener("hashchange", checkUrlHash);
