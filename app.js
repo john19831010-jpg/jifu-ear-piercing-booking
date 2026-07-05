@@ -125,6 +125,16 @@ function generateTimeOptions(selectElement, dayOfWeek, selectedDateStr = "") {
     ? (sysConfig.specialDisabledSlots[selectedDateStr] || [])
     : [];
   
+  // 取得此日已被預約佔用的時段 (不包含已取消的預約)
+  const bookedSlots = [];
+  if (selectedDateStr && bookingsList) {
+    bookingsList.forEach(b => {
+      if (b.date === selectedDateStr && b.status !== "已取消") {
+        bookedSlots.push(b.time);
+      }
+    });
+  }
+  
   let addedCount = 0;
   while (currentMin <= endMin) {
     const h = Math.floor(currentMin / 60);
@@ -134,8 +144,8 @@ function generateTimeOptions(selectElement, dayOfWeek, selectedDateStr = "") {
     // 檢查是否為週六、日特定休息時間 (下午五點半 17:30 之後 到 晚上八點半 20:30 之前)
     const isWeekendBreak = (dayOfWeek === 6 || dayOfWeek === 0) && (currentMin > (17 * 60 + 30) && currentMin < (20 * 60 + 30));
     
-    // 只有當該時段沒有被關閉且不屬於週六日中間休息時間時，才提供給客人選取
-    if (!blockedSlots.includes(timeStr) && !isWeekendBreak) {
+    // 只有當該時段沒有被關閉、沒有被預約，且不屬於週六日中間休息時間時，才提供給客人選取
+    if (!blockedSlots.includes(timeStr) && !bookedSlots.includes(timeStr) && !isWeekendBreak) {
       const option = document.createElement("option");
       option.value = timeStr;
       option.textContent = timeStr;
