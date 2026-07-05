@@ -1,13 +1,15 @@
 // --- 系統初始化與變數定義 ---
+const CONFIG_VERSION = "1.0.3";
 const DEFAULT_CONFIG = {
+  configVersion: CONFIG_VERSION,
   days: {
     1: { open: true, start: "11:30", end: "20:30", interval: 60 },  // 週一
     2: { open: true, start: "11:30", end: "20:30", interval: 60 },  // 週二
     3: { open: true, start: "11:30", end: "20:30", interval: 60 },  // 週三
     4: { open: true, start: "11:30", end: "20:30", interval: 60 },  // 週四
-    5: { open: true, start: "11:30", end: "20:30", interval: 60 },  // 週五
-    6: { open: true, start: "11:30", end: "20:30", interval: 60 },  // 週六
-    0: { open: false, start: "11:30", end: "20:30", interval: 60 }  // 週日
+    5: { open: true, start: "12:00", end: "16:30", interval: 30 },  // 週五 (12:00 - 16:30)
+    6: { open: true, start: "14:00", end: "20:30", interval: 30 },  // 週六 (14:00 - 17:30 + 20:30)
+    0: { open: true, start: "14:00", end: "20:30", interval: 30 }   // 週日 (14:00 - 17:30 + 20:30)
   },
   leaveDates: [], // 臨時請假/店休日期黑名單
   specialDisabledSlots: {} // 特定日期個別關閉的時段，格式如 {"2026-07-06": ["13:30", "14:30"]}
@@ -24,13 +26,19 @@ try {
 }
 
 let sysConfig;
-// 進行舊版數據結構的相容性檢查與初始化
-if (loadedConfig && loadedConfig.days) {
+// 進行舊版數據結構的相容性檢查與升級
+if (loadedConfig && loadedConfig.days && loadedConfig.configVersion === CONFIG_VERSION) {
   sysConfig = loadedConfig;
   sysConfig.leaveDates = sysConfig.leaveDates || [];
   sysConfig.specialDisabledSlots = sysConfig.specialDisabledSlots || {};
 } else {
+  // 首次載入或舊版本升級，強制套用最新週五、六、日的營業時間預設，但保留請假與自訂時段
   sysConfig = JSON.parse(JSON.stringify(DEFAULT_CONFIG));
+  if (loadedConfig) {
+    sysConfig.leaveDates = loadedConfig.leaveDates || [];
+    sysConfig.specialDisabledSlots = loadedConfig.specialDisabledSlots || {};
+  }
+  localStorage.setItem("jifu_piercing_config", JSON.stringify(sysConfig));
 }
 
 let bookingsList = [];
@@ -123,8 +131,11 @@ function generateTimeOptions(selectElement, dayOfWeek, selectedDateStr = "") {
     const m = currentMin % 60;
     const timeStr = `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}`;
     
-    // 只有當該時段沒有被關閉時，才提供給客人選取
-    if (!blockedSlots.includes(timeStr)) {
+    // 檢查是否為週六、日特定休息時間 (下午五點半 17:30 之後 到 晚上八點半 20:30 之前)
+    const isWeekendBreak = (dayOfWeek === 6 || dayOfWeek === 0) && (currentMin > (17 * 60 + 30) && currentMin < (20 * 60 + 30));
+    
+    // 只有當該時段沒有被關閉且不屬於週六日中間休息時間時，才提供給客人選取
+    if (!blockedSlots.includes(timeStr) && !isWeekendBreak) {
       const option = document.createElement("option");
       option.value = timeStr;
       option.textContent = timeStr;
@@ -472,25 +483,29 @@ function loadSpecialDateSlots() {
   
   const container = document.getElementById("special-slots-checkboxes");
   container.innerHTML = "";
-  
   let slotsCount = 0;
   while (currentMin <= endMin) {
     const h = Math.floor(currentMin / 60);
     const m = currentMin % 60;
     const timeStr = `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}`;
     
-    // 如果不在黑名單中，代表是勾選（開放）的
-    const isChecked = !blockedSlots.includes(timeStr);
+    // 檢查是否為週六、日特定休息時間 (下午五點半 17:30 之後 到 晚上八點半 20:30 之前)
+    const isWeekendBreak = (dayOfWeek === 6 || dayOfWeek === 0) && (currentMin > (17 * 60 + 30) && currentMin < (20 * 60 + 30));
     
-    const label = document.createElement("label");
-    label.className = "checkbox-label";
-    label.style.cssText = "border: 1px solid rgba(255,255,255,0.08); padding: 8px 12px; border-radius: 6px; background: rgba(255,255,255,0.02); display: flex; align-items: center; gap: 8px; cursor: pointer;";
-    label.innerHTML = `
-      <input type="checkbox" class="special-slot-cb" value="${timeStr}" ${isChecked ? 'checked' : ''}>
-      <span class="en-num" style="font-weight: 600;">${timeStr}</span>
-    `;
-    container.appendChild(label);
-    slotsCount++;
+    if (!isWeekendBreak) {
+      // 如果不在黑名單中，代表是勾選（開放）的
+      const isChecked = !blockedSlots.includes(timeStr);
+      
+      const label = document.createElement("label");
+      label.className = "checkbox-label";
+      label.style.cssText = "border: 1px solid rgba(255,255,255,0.08); padding: 8px 12px; border-radius: 6px; background: rgba(255,255,255,0.02); display: flex; align-items: center; gap: 8px; cursor: pointer;";
+      label.innerHTML = `
+        <input type="checkbox" class="special-slot-cb" value="${timeStr}" ${isChecked ? 'checked' : ''}>
+        <span class="en-num" style="font-weight: 600;">${timeStr}</span>
+      `;
+      container.appendChild(label);
+      slotsCount++;
+    }
     
     currentMin += Number(dayConfigToUse.interval);
   }
