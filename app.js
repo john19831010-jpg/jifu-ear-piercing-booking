@@ -13,9 +13,18 @@ const DEFAULT_CONFIG = {
   specialDisabledSlots: {} // 特定日期個別關閉的時段，格式如 {"2026-07-06": ["13:30", "14:30"]}
 };
 
-let loadedConfig = JSON.parse(localStorage.getItem("jifu_piercing_config"));
+let loadedConfig = null;
+try {
+  const localConfigStr = localStorage.getItem("jifu_piercing_config");
+  if (localConfigStr) {
+    loadedConfig = JSON.parse(localConfigStr);
+  }
+} catch (e) {
+  console.error("解析系統設定失敗，將使用預設設定", e);
+}
+
 let sysConfig;
-// 進行舊版數據結構的相容性檢查
+// 進行舊版數據結構的相容性檢查與初始化
 if (loadedConfig && loadedConfig.days) {
   sysConfig = loadedConfig;
   sysConfig.leaveDates = sysConfig.leaveDates || [];
@@ -23,7 +32,17 @@ if (loadedConfig && loadedConfig.days) {
 } else {
   sysConfig = JSON.parse(JSON.stringify(DEFAULT_CONFIG));
 }
-let bookingsList = JSON.parse(localStorage.getItem("jifu_piercing_bookings")) || [];
+
+let bookingsList = [];
+try {
+  const localBookingsStr = localStorage.getItem("jifu_piercing_bookings");
+  if (localBookingsStr) {
+    bookingsList = JSON.parse(localBookingsStr) || [];
+  }
+} catch (e) {
+  console.error("解析預約名單失敗，初始化為空名單", e);
+  bookingsList = [];
+}
 
 // 初始化網頁設定
 document.addEventListener("DOMContentLoaded", () => {
