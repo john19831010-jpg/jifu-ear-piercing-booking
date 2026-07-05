@@ -9,7 +9,8 @@ const DEFAULT_CONFIG = {
     6: { open: true, start: "11:30", end: "20:30", interval: 60 },  // 週六
     0: { open: false, start: "11:30", end: "20:30", interval: 60 }  // 週日
   },
-  leaveDates: [] // 臨時請假/店休日期黑名單
+  leaveDates: [], // 臨時請假/店休日期黑名單
+  specialDisabledSlots: {} // 特定日期個別關閉的時段，格式如 {"2026-07-06": ["13:30", "14:30"]}
 };
 
 let loadedConfig = JSON.parse(localStorage.getItem("jifu_piercing_config"));
@@ -18,6 +19,7 @@ let sysConfig;
 if (loadedConfig && loadedConfig.days) {
   sysConfig = loadedConfig;
   sysConfig.leaveDates = sysConfig.leaveDates || [];
+  sysConfig.specialDisabledSlots = sysConfig.specialDisabledSlots || {};
 } else {
   sysConfig = JSON.parse(JSON.stringify(DEFAULT_CONFIG));
 }
@@ -74,13 +76,13 @@ function initClientPage() {
       return;
     }
     
-    // 生成可預約時段
-    generateTimeOptions(timeSelect, dayOfWeek);
+    // 生成可預約時段，帶入選擇的日期以進行特定時段過濾
+    generateTimeOptions(timeSelect, dayOfWeek, selectedDate);
   });
 }
 
-// 根據特定星期設定生成時間段選項
-function generateTimeOptions(selectElement, dayOfWeek) {
+// 根據特定星期設定與特定日期自訂過濾生成時段選項
+function generateTimeOptions(selectElement, dayOfWeek, selectedDateStr = "") {
   selectElement.innerHTML = '<option value="" disabled selected>請選擇時段</option>';
   
   const dayConfig = sysConfig.days[dayOfWeek];
@@ -90,6 +92,39 @@ function generateTimeOptions(selectElement, dayOfWeek) {
   const [endH, endM] = dayConfig.end.split(":").map(Number);
   
   let currentMin = startH * 60 + startM;
+  const endMin = endH * 60 + endM;
+  
+  // 取得此日被關閉的時段黑名單
+  const blockedSlots = (selectedDateStr && sysConfig.specialDisabledSlots)
+    ? (sysConfig.specialDisabledSlots[selectedDateStr] || [])
+    : [];
+  
+  let addedCount = 0;
+  while (currentMin <= endMin) {
+    const h = Math.floor(currentMin / 60);
+    const m = currentMin % 60;
+    const timeStr = `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}`;
+    
+    // 只有當該時段沒有被關閉時，才提供給客人選取
+    if (!blockedSlots.includes(timeStr)) {
+      const option = document.createElement("option");
+      option.value = timeStr;
+      option.textContent = timeStr;
+      selectElement.appendChild(option);
+      addedCount++;
+    }
+    
+    currentMin += Number(dayConfig.interval);
+  }
+  
+  if (addedCount === 0) {
+    selectElement.innerHTML = '<option value="" disabled selected>當天時段已全數約滿或未開放</option>';
+    selectElement.disabled = true;
+  } else {
+    selectElement.disabled = false;
+  }
+}
+* 60 + startM;
   const endMin = endH * 60 + endM;
   
   while (currentMin <= endMin) {
@@ -304,6 +339,9 @@ function loadTimeConfigForm() {
   // 載入臨時請假日期清單
   loadLeaveDatesList();
   
+  // 載入特別自訂時段的日期清單
+  loadSpecialDatesList();
+  
   // 更新後台手動預約的日期限制
   const manualDateInput = document.getElementById("manual-date");
   manualDateInput.min = new Date().toISOString().split("T")[0];
@@ -313,6 +351,16 @@ function loadTimeConfigForm() {
   if (leaveDateInput) {
     leaveDateInput.min = new Date().toISOString().split("T")[0];
   }
+  
+  // 設定個別日期時段調整選擇器的最小值為今天
+  const specialDatePicker = document.getElementById("special-date-picker");
+  if (specialDatePicker) {
+    specialDatePicker.min = new Date().toISOString().split("T")[0];
+  }
+  
+  // 預設隱藏自訂時段勾選區塊
+  const specialArea = document.getElementById("special-slots-area");
+  if (specialArea) specialArea.style.display = "none";
 }
 
 // 渲染已設定的請假日期標籤列表
@@ -379,6 +427,157 @@ function deleteLeaveDate(dateStr) {
     localStorage.setItem("jifu_piercing_config", JSON.stringify(sysConfig));
     
     loadLeaveDatesList();
+    initClientPage();
+  }
+}
+
+// --- 臨時自訂特定日期時段之增刪與控制邏輯 ---
+
+// 後台載入當天時段 Checkboxes 供師傅勾選
+function loadSpecialDateSlots() {
+  const datePicker = document.getElementById("special-date-picker");
+  const dateStr = datePicker.value;
+  
+  if (!dateStr) {
+    alert("請先選擇要個別調整時段的日期！");
+    return;
+  }
+  
+  // 提醒該日期是否為全天請假日期
+  if (sysConfig.leaveDates && sysConfig.leaveDates.includes(dateStr)) {
+    alert("提示：該日期目前已設定為「全天休假/店休」。若要開放特定時段，請先至上方取消休假設定！");
+  }
+  
+  const dateObj = new Date(dateStr);
+  const dayOfWeek = dateObj.getDay();
+  const dayConfig = sysConfig.days[dayOfWeek];
+  
+  // 如果預設店休，提示並給予預設值供強行設定
+  const dayConfigToUse = (dayConfig && dayConfig.open) ? dayConfig : { start: "11:30", end: "20:30", interval: 60 };
+  if (!dayConfig || !dayConfig.open) {
+    alert("提示：當天星期在您的預設中是「店休/不開放」。系統將會生成該星期的預設時段供您強行開放。");
+  }
+  
+  const [startH, startM] = dayConfigToUse.start.split(":").map(Number);
+  const [endH, endM] = dayConfigToUse.end.split(":").map(Number);
+  
+  let currentMin = startH * 60 + startM;
+  const endMin = endH * 60 + endM;
+  
+  // 取得此日被關閉的時段黑名單
+  sysConfig.specialDisabledSlots = sysConfig.specialDisabledSlots || {};
+  const blockedSlots = sysConfig.specialDisabledSlots[dateStr] || [];
+  
+  const container = document.getElementById("special-slots-checkboxes");
+  container.innerHTML = "";
+  
+  let slotsCount = 0;
+  while (currentMin <= endMin) {
+    const h = Math.floor(currentMin / 60);
+    const m = currentMin % 60;
+    const timeStr = `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}`;
+    
+    // 如果不在黑名單中，代表是勾選（開放）的
+    const isChecked = !blockedSlots.includes(timeStr);
+    
+    const label = document.createElement("label");
+    label.className = "checkbox-label";
+    label.style.cssText = "border: 1px solid rgba(255,255,255,0.08); padding: 8px 12px; border-radius: 6px; background: rgba(255,255,255,0.02); display: flex; align-items: center; gap: 8px; cursor: pointer;";
+    label.innerHTML = `
+      <input type="checkbox" class="special-slot-cb" value="${timeStr}" ${isChecked ? 'checked' : ''}>
+      <span class="en-num" style="font-weight: 600;">${timeStr}</span>
+    `;
+    container.appendChild(label);
+    slotsCount++;
+    
+    currentMin += Number(dayConfigToUse.interval);
+  }
+  
+  if (slotsCount === 0) {
+    container.innerHTML = `<span style="color: var(--danger);">無法為此日期生成營業時段！</span>`;
+    document.getElementById("special-slots-area").style.display = "block";
+    return;
+  }
+  
+  // 顯示選取區塊
+  document.getElementById("special-slots-area").style.display = "block";
+}
+
+// 儲存特別自訂時段
+function saveSpecialDateSlots() {
+  const datePicker = document.getElementById("special-date-picker");
+  const dateStr = datePicker.value;
+  if (!dateStr) return;
+  
+  const checkboxes = document.querySelectorAll(".special-slot-cb");
+  const blockedSlots = [];
+  
+  checkboxes.forEach(cb => {
+    // 未勾選的時段 = 被關閉的時段
+    if (!cb.checked) {
+      blockedSlots.push(cb.value);
+    }
+  });
+  
+  sysConfig.specialDisabledSlots = sysConfig.specialDisabledSlots || {};
+  
+  if (blockedSlots.length > 0) {
+    sysConfig.specialDisabledSlots[dateStr] = blockedSlots;
+  } else {
+    // 如果全部都勾選（全部時段開放），直接刪除此日期的自訂，恢復預設
+    delete sysConfig.specialDisabledSlots[dateStr];
+  }
+  
+  localStorage.setItem("jifu_piercing_config", JSON.stringify(sysConfig));
+  alert(`成功儲存 ${dateStr} 的個別預約時段設定！顧客在前台將只能選取您有勾選的時段。`);
+  
+  // 隱藏區塊並重設輸入
+  document.getElementById("special-slots-area").style.display = "none";
+  datePicker.value = "";
+  
+  // 重新載入列表與前台
+  loadSpecialDatesList();
+  initClientPage();
+}
+
+// 渲染已設定自訂時段的日期標籤清單
+function loadSpecialDatesList() {
+  const container = document.getElementById("special-dates-list");
+  if (!container) return;
+  
+  container.innerHTML = "";
+  sysConfig.specialDisabledSlots = sysConfig.specialDisabledSlots || {};
+  const dates = Object.keys(sysConfig.specialDisabledSlots);
+  
+  if (dates.length === 0) {
+    container.innerHTML = `<span style="color: var(--text-muted); font-size: 0.9rem;">（目前無設定個別日期時段）</span>`;
+    return;
+  }
+  
+  // 排序日期
+  const sortedDates = [...dates].sort((a, b) => a.localeCompare(b));
+  
+  sortedDates.forEach(dateStr => {
+    const disabledCount = sysConfig.specialDisabledSlots[dateStr].length;
+    const badge = document.createElement("span");
+    badge.className = "status-badge status-pending";
+    badge.style.cssText = "display: inline-flex; align-items: center; gap: 8px; padding: 6px 12px; font-size: 0.85rem; border-radius: 50px; color: var(--gold-light); border: 1px solid var(--gold-border); background: rgba(212,175,55,0.1);";
+    badge.innerHTML = `
+      ${dateStr} (已關閉 ${disabledCount} 個時段)
+      <span style="cursor: pointer; font-weight: bold; font-size: 1.1rem; color: #FF453A; margin-left: 4px;" onclick="deleteSpecialDateConfig('${dateStr}')">×</span>
+    `;
+    container.appendChild(badge);
+  });
+}
+
+// 刪除特定日期的自訂特別時段
+function deleteSpecialDateConfig(dateStr) {
+  if (confirm(`確定要清除 ${dateStr} 的個別時段微調，回復為一般星期的預設營業時間嗎？`)) {
+    sysConfig.specialDisabledSlots = sysConfig.specialDisabledSlots || {};
+    delete sysConfig.specialDisabledSlots[dateStr];
+    localStorage.setItem("jifu_piercing_config", JSON.stringify(sysConfig));
+    
+    loadSpecialDatesList();
     initClientPage();
   }
 }
@@ -451,15 +650,21 @@ function updateManualTimeOptions() {
     alert("提示：您選擇的日期是「師父臨時請假/店休日」。如果確定要強行建立預約，系統仍會提供該星期的預設時間選項。");
   }
   
+  // 檢查是否為自訂特殊時段日期
+  sysConfig.specialDisabledSlots = sysConfig.specialDisabledSlots || {};
+  if (sysConfig.specialDisabledSlots[manualDate]) {
+    alert("提示：此日期已被設定「個別時段微調」，手動預約將僅列出您有開放的預約時段。");
+  }
+  
   const dateObj = new Date(manualDate);
   const dayOfWeek = dateObj.getDay();
   
   const dayConfig = sysConfig.days[dayOfWeek];
   if (!dayConfig || !dayConfig.open) {
     alert("提示：您選擇的日期在您的後台設定中是「休息日」。如果確認要手動建立預約，系統仍將為您提供該星期的預設時間選項。");
-    generateTimeOptions(manualTimeSelect, dayOfWeek);
+    generateTimeOptions(manualTimeSelect, dayOfWeek, manualDate);
   } else {
-    generateTimeOptions(manualTimeSelect, dayOfWeek);
+    generateTimeOptions(manualTimeSelect, dayOfWeek, manualDate);
   }
 }
 

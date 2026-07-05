@@ -645,6 +645,37 @@
                 <span style="color: var(--text-muted); font-size: 0.9rem;">（無設定特定休假日）</span>
               </div>
             </div>
+
+            <!-- 特定日期個別時段微調 -->
+            <div style="margin-top: 45px; border-top: 1px dashed var(--gold-border); padding-top: 32px;">
+              <h3 style="margin-bottom: 12px; border-left: 3px solid var(--gold-primary); padding-left: 12px;">🕒 特定日期個別時段微調 (時段開關)</h3>
+              <p style="color: var(--text-secondary); font-size: 0.9rem; margin-bottom: 20px;">
+                若您某天（例如下週一）需要中途出門幾小時，可以在下方選取該日期、載入當天時段，並<b>取消勾選</b>不開放預約的時段，客人前台就會直接隱藏那些時段。
+              </p>
+              
+              <div style="display: flex; gap: 12px; align-items: center; margin-bottom: 24px; flex-wrap: wrap;">
+                <div>
+                  <span style="font-size: 0.9rem; color: var(--text-secondary);">選擇調整日期：</span>
+                  <input type="date" id="special-date-picker" style="padding: 10px 16px;">
+                </div>
+                <button class="gold-btn" style="padding: 10px 24px; font-size: 0.9rem;" onclick="loadSpecialDateSlots()">🔍 載入當天時段</button>
+              </div>
+
+              <!-- 動態載入的時段 Checkbox 容器 -->
+              <div id="special-slots-area" style="display: none; background: rgba(0,0,0,0.15); border: 1px solid var(--gold-border); padding: 20px; border-radius: var(--radius-md); margin-bottom: 24px;">
+                <h4 style="font-size: 0.95rem; margin-bottom: 12px; color: var(--gold-light);">請勾選可以接受預約的時段（取消勾選代表不開放）：</h4>
+                <div id="special-slots-checkboxes" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); gap: 12px; margin-bottom: 16px;">
+                  <!-- Checkboxes 會在 JS 載入 -->
+                </div>
+                <button class="gold-btn" id="save-special-slots-btn" style="padding: 8px 20px; font-size: 0.85rem;" onclick="saveSpecialDateSlots()">💾 儲存此日特別時段</button>
+              </div>
+
+              <h4 style="font-size: 0.95rem; margin-bottom: 12px; color: var(--gold-light);">目前已自訂特別時段的日期：</h4>
+              <div id="special-dates-list" style="display: flex; gap: 10px; flex-wrap: wrap;">
+                <span style="color: var(--text-muted); font-size: 0.9rem;">（目前無設定個別日期時段）</span>
+              </div>
+            </div>
+          </div>
           </div>
         </div>
       </div>
