@@ -14,7 +14,22 @@
   <header id="client-header">
     <div class="container nav-container">
       <a href="#" class="logo">
-        <div class="logo-icon">吉</div>
+        <!-- 優先載入店用 logo.png，若不存在則自動切換為高質感金色珠寶 SVG -->
+        <img src="logo.png" alt="吉富珠寶銀樓" class="logo-img" id="custom-logo" onerror="this.style.display='none'; document.getElementById('default-logo').style.display='block';">
+        <svg id="default-logo" class="default-logo-svg" viewBox="0 0 100 100" style="display: none;">
+          <defs>
+            <linearGradient id="logo-gold" x1="0%" y1="0%" x2="100%" y2="100%">
+              <stop offset="0%" stop-color="#C5A03F" />
+              <stop offset="50%" stop-color="#F3E5AB" />
+              <stop offset="100%" stop-color="#B89742" />
+            </linearGradient>
+          </defs>
+          <!-- 奢華耳環與閃耀金飾幾何線條 -->
+          <circle cx="50" cy="35" r="18" fill="none" stroke="url(#logo-gold)" stroke-width="4"/>
+          <path d="M50,53 L50,75 M40,65 L60,65" fill="none" stroke="url(#logo-gold)" stroke-width="3"/>
+          <polygon points="50,73 45,83 55,83" fill="url(#logo-gold)"/>
+          <circle cx="50" cy="35" r="6" fill="url(#logo-gold)"/>
+        </svg>
         <span>吉富珠寶銀樓 <span class="gold-text" style="font-size: 0.8rem; font-weight: 500;">穿耳專區</span></span>
       </a>
       <nav>

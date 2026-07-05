@@ -174,17 +174,16 @@ header {
   text-decoration: none;
 }
 
-.logo-icon {
-  width: 32px;
-  height: 32px;
-  border: 2px solid var(--gold-primary);
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: var(--gold-primary);
-  font-weight: bold;
-  font-family: var(--font-en);
+.logo-img {
+  height: 38px;
+  width: auto;
+  object-fit: contain;
+}
+
+.default-logo-svg {
+  width: 36px;
+  height: 36px;
+  flex-shrink: 0;
 }
 
 nav ul {
