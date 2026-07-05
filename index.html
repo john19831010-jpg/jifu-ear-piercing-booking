@@ -387,65 +387,223 @@
       <div class="tab-content" id="tab-settings">
         <div class="admin-grid" style="grid-template-columns: 1fr;">
           <div class="glass-panel time-config-card">
-            <h3 style="margin-bottom: 12px; border-left: 3px solid var(--gold-primary); padding-left: 12px;">⚙️ 開放預約時間段設定 (瀏覽器自動記憶)</h3>
+            <h3 style="margin-bottom: 12px; border-left: 3px solid var(--gold-primary); padding-left: 12px;">⚙️ 週一至週日獨立時間段設定 (瀏覽器自動記憶)</h3>
             <p style="color: var(--text-secondary); font-size: 0.9rem; margin-bottom: 24px;">
-              在此處設定您方便穿耳洞的營業時間。設定儲存後，前台客人的預約表單會即時跟著改變。
+              在此處分別設定每一天（週一至週日）是否開放預約，以及當天可以被預約的時間範圍。儲存後前台即時更新。
             </p>
             
-            <div class="form-group">
-              <label><b>1. 開放營業日 (星期幾開放預約)</b></label>
-              <div class="weekday-selector">
-                <label class="checkbox-label"><input type="checkbox" class="config-day" value="1" checked> 週一</label>
-                <label class="checkbox-label"><input type="checkbox" class="config-day" value="2" checked> 週二</label>
-                <label class="checkbox-label"><input type="checkbox" class="config-day" value="3" checked> 週三</label>
-                <label class="checkbox-label"><input type="checkbox" class="config-day" value="4" checked> 週四</label>
-                <label class="checkbox-label"><input type="checkbox" class="config-day" value="5" checked> 週五</label>
-                <label class="checkbox-label"><input type="checkbox" class="config-day" value="6" checked> 週六</label>
-                <label class="checkbox-label"><input type="checkbox" class="config-day" value="0"> 週日</label>
-              </div>
-            </div>
-
-            <div class="form-group" style="margin-top: 24px;">
-              <label><b>2. 每日預約時間區間</b></label>
-              <div class="time-range-row">
-                <div>
-                  <span style="font-size: 0.9rem; color: var(--text-secondary);">開始營業時間：</span>
-                  <select id="config-start-time">
-                    <option value="09:00">09:00</option>
-                    <option value="09:30">09:30</option>
-                    <option value="10:00">10:00</option>
-                    <option value="10:30">10:30</option>
-                    <option value="11:00">11:00</option>
-                    <option value="11:30" selected>11:30</option>
-                    <option value="12:00">12:00</option>
-                    <option value="13:00">13:00</option>
-                    <option value="14:00">14:00</option>
-                  </select>
-                </div>
-                <div style="color: var(--gold-primary); font-weight: bold;">至</div>
-                <div>
-                  <span style="font-size: 0.9rem; color: var(--text-secondary);">結束營業時間：</span>
-                  <select id="config-end-time">
-                    <option value="17:00">17:00</option>
-                    <option value="18:00">18:00</option>
-                    <option value="19:00">19:00</option>
-                    <option value="20:00">20:00</option>
-                    <option value="20:30" selected>20:30</option>
-                    <option value="21:00">21:00</option>
-                    <option value="21:30">21:30</option>
-                    <option value="22:00">22:00</option>
-                  </select>
-                </div>
-                <div>
-                  <span style="font-size: 0.9rem; color: var(--text-secondary);">時段間隔：</span>
-                  <select id="config-slot-interval">
-                    <option value="30">每 30 分鐘</option>
-                    <option value="60" selected>每 60 分鐘 (整點)</option>
-                    <option value="90">每 90 分鐘</option>
-                    <option value="120">每 2 小時</option>
-                  </select>
-                </div>
-              </div>
+            <div class="table-responsive">
+              <table style="min-width: 600px;">
+                <thead>
+                  <tr>
+                    <th>星期</th>
+                    <th>是否開放預約</th>
+                    <th>開始營業時間</th>
+                    <th>最晚預約時間</th>
+                    <th>時段間隔</th>
+                  </tr>
+                </thead>
+                <tbody id="config-days-tbody">
+                  <!-- 週一至週日之行列表會在這裡動態渲染或以靜態結構呈現 -->
+                  <!-- 為了保持操作可靠性，使用靜態結構載入，後續以 JS 連動 -->
+                  <tr data-day="1">
+                    <td><b>週一</b></td>
+                    <td><label class="checkbox-label"><input type="checkbox" class="cfg-open" checked> 開放</label></td>
+                    <td>
+                      <select class="cfg-start">
+                        <option value="09:00">09:00</option><option value="09:30">09:30</option>
+                        <option value="10:00">10:00</option><option value="10:30">10:30</option>
+                        <option value="11:00">11:00</option><option value="11:30" selected>11:30</option>
+                        <option value="12:00">12:00</option><option value="13:00">13:00</option>
+                      </select>
+                    </td>
+                    <td>
+                      <select class="cfg-end">
+                        <option value="17:00">17:00</option><option value="18:00">18:00</option>
+                        <option value="19:00">19:00</option><option value="20:00">20:00</option>
+                        <option value="20:30" selected>20:30</option><option value="21:00">21:00</option>
+                        <option value="22:00">22:00</option>
+                      </select>
+                    </td>
+                    <td>
+                      <select class="cfg-interval">
+                        <option value="30">每 30 分鐘</option>
+                        <option value="60" selected>每 60 分鐘 (整點)</option>
+                        <option value="90">每 90 分鐘</option>
+                        <option value="120">每 2 小時</option>
+                      </select>
+                    </td>
+                  </tr>
+                  <tr data-day="2">
+                    <td><b>週二</b></td>
+                    <td><label class="checkbox-label"><input type="checkbox" class="cfg-open" checked> 開放</label></td>
+                    <td>
+                      <select class="cfg-start">
+                        <option value="09:00">09:00</option><option value="09:30">09:30</option>
+                        <option value="10:00">10:00</option><option value="10:30">10:30</option>
+                        <option value="11:00">11:00</option><option value="11:30" selected>11:30</option>
+                        <option value="12:00">12:00</option><option value="13:00">13:00</option>
+                      </select>
+                    </td>
+                    <td>
+                      <select class="cfg-end">
+                        <option value="17:00">17:00</option><option value="18:00">18:00</option>
+                        <option value="19:00">19:00</option><option value="20:00">20:00</option>
+                        <option value="20:30" selected>20:30</option><option value="21:00">21:00</option>
+                        <option value="22:00">22:00</option>
+                      </select>
+                    </td>
+                    <td>
+                      <select class="cfg-interval">
+                        <option value="30">每 30 分鐘</option>
+                        <option value="60" selected>每 60 分鐘 (整點)</option>
+                        <option value="90">每 90 分鐘</option>
+                        <option value="120">每 2 小時</option>
+                      </select>
+                    </td>
+                  </tr>
+                  <tr data-day="3">
+                    <td><b>週三</b></td>
+                    <td><label class="checkbox-label"><input type="checkbox" class="cfg-open" checked> 開放</label></td>
+                    <td>
+                      <select class="cfg-start">
+                        <option value="09:00">09:00</option><option value="09:30">09:30</option>
+                        <option value="10:00">10:00</option><option value="10:30">10:30</option>
+                        <option value="11:00">11:00</option><option value="11:30" selected>11:30</option>
+                        <option value="12:00">12:00</option><option value="13:00">13:00</option>
+                      </select>
+                    </td>
+                    <td>
+                      <select class="cfg-end">
+                        <option value="17:00">17:00</option><option value="18:00">18:00</option>
+                        <option value="19:00">19:00</option><option value="20:00">20:00</option>
+                        <option value="20:30" selected>20:30</option><option value="21:00">21:00</option>
+                        <option value="22:00">22:00</option>
+                      </select>
+                    </td>
+                    <td>
+                      <select class="cfg-interval">
+                        <option value="30">每 30 分鐘</option>
+                        <option value="60" selected>每 60 分鐘 (整點)</option>
+                        <option value="90">每 90 分鐘</option>
+                        <option value="120">每 2 小時</option>
+                      </select>
+                    </td>
+                  </tr>
+                  <tr data-day="4">
+                    <td><b>週四</b></td>
+                    <td><label class="checkbox-label"><input type="checkbox" class="cfg-open" checked> 開放</label></td>
+                    <td>
+                      <select class="cfg-start">
+                        <option value="09:00">09:00</option><option value="09:30">09:30</option>
+                        <option value="10:00">10:00</option><option value="10:30">10:30</option>
+                        <option value="11:00">11:00</option><option value="11:30" selected>11:30</option>
+                        <option value="12:00">12:00</option><option value="13:00">13:00</option>
+                      </select>
+                    </td>
+                    <td>
+                      <select class="cfg-end">
+                        <option value="17:00">17:00</option><option value="18:00">18:00</option>
+                        <option value="19:00">19:00</option><option value="20:00">20:00</option>
+                        <option value="20:30" selected>20:30</option><option value="21:00">21:00</option>
+                        <option value="22:00">22:00</option>
+                      </select>
+                    </td>
+                    <td>
+                      <select class="cfg-interval">
+                        <option value="30">每 30 分鐘</option>
+                        <option value="60" selected>每 60 分鐘 (整點)</option>
+                        <option value="90">每 90 分鐘</option>
+                        <option value="120">每 2 小時</option>
+                      </select>
+                    </td>
+                  </tr>
+                  <tr data-day="5">
+                    <td><b>週五</b></td>
+                    <td><label class="checkbox-label"><input type="checkbox" class="cfg-open" checked> 開放</label></td>
+                    <td>
+                      <select class="cfg-start">
+                        <option value="09:00">09:00</option><option value="09:30">09:30</option>
+                        <option value="10:00">10:00</option><option value="10:30">10:30</option>
+                        <option value="11:00">11:00</option><option value="11:30" selected>11:30</option>
+                        <option value="12:00">12:00</option><option value="13:00">13:00</option>
+                      </select>
+                    </td>
+                    <td>
+                      <select class="cfg-end">
+                        <option value="17:00">17:00</option><option value="18:00">18:00</option>
+                        <option value="19:00">19:00</option><option value="20:00">20:00</option>
+                        <option value="20:30" selected>20:30</option><option value="21:00">21:00</option>
+                        <option value="22:00">22:00</option>
+                      </select>
+                    </td>
+                    <td>
+                      <select class="cfg-interval">
+                        <option value="30">每 30 分鐘</option>
+                        <option value="60" selected>每 60 分鐘 (整點)</option>
+                        <option value="90">每 90 分鐘</option>
+                        <option value="120">每 2 小時</option>
+                      </select>
+                    </td>
+                  </tr>
+                  <tr data-day="6">
+                    <td><b>週六</b></td>
+                    <td><label class="checkbox-label"><input type="checkbox" class="cfg-open" checked> 開放</label></td>
+                    <td>
+                      <select class="cfg-start">
+                        <option value="09:00">09:00</option><option value="09:30">09:30</option>
+                        <option value="10:00">10:00</option><option value="10:30">10:30</option>
+                        <option value="11:00">11:00</option><option value="11:30" selected>11:30</option>
+                        <option value="12:00">12:00</option><option value="13:00">13:00</option>
+                      </select>
+                    </td>
+                    <td>
+                      <select class="cfg-end">
+                        <option value="17:00">17:00</option><option value="18:00">18:00</option>
+                        <option value="19:00">19:00</option><option value="20:00">20:00</option>
+                        <option value="20:30" selected>20:30</option><option value="21:00">21:00</option>
+                        <option value="22:00">22:00</option>
+                      </select>
+                    </td>
+                    <td>
+                      <select class="cfg-interval">
+                        <option value="30">每 30 分鐘</option>
+                        <option value="60" selected>每 60 分鐘 (整點)</option>
+                        <option value="90">每 90 分鐘</option>
+                        <option value="120">每 2 小時</option>
+                      </select>
+                    </td>
+                  </tr>
+                  <tr data-day="0">
+                    <td><b>週日</b></td>
+                    <td><label class="checkbox-label"><input type="checkbox" class="cfg-open"> 開放</label></td>
+                    <td>
+                      <select class="cfg-start">
+                        <option value="09:00">09:00</option><option value="09:30">09:30</option>
+                        <option value="10:00">10:00</option><option value="10:30">10:30</option>
+                        <option value="11:00">11:00</option><option value="11:30" selected>11:30</option>
+                        <option value="12:00">12:00</option><option value="13:00">13:00</option>
+                      </select>
+                    </td>
+                    <td>
+                      <select class="cfg-end">
+                        <option value="17:00">17:00</option><option value="18:00">18:00</option>
+                        <option value="19:00">19:00</option><option value="20:00">20:00</option>
+                        <option value="20:30" selected>20:30</option><option value="21:00">21:00</option>
+                        <option value="22:00">22:00</option>
+                      </select>
+                    </td>
+                    <td>
+                      <select class="cfg-interval">
+                        <option value="30">每 30 分鐘</option>
+                        <option value="60" selected>每 60 分鐘 (整點)</option>
+                        <option value="90">每 90 分鐘</option>
+                        <option value="120">自由時段</option>
+                      </select>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
             </div>
 
             <div style="margin-top: 36px; display: flex; gap: 16px;">

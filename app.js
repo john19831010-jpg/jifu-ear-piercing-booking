@@ -1,12 +1,24 @@
 // --- 系統初始化與變數定義 ---
 const DEFAULT_CONFIG = {
-  openDays: [1, 2, 3, 4, 5, 6], // 週一至週六
-  startTime: "11:30",
-  endTime: "20:30",
-  interval: 60 // 60分鐘
+  days: {
+    1: { open: true, start: "11:30", end: "20:30", interval: 60 },  // 週一
+    2: { open: true, start: "11:30", end: "20:30", interval: 60 },  // 週二
+    3: { open: true, start: "11:30", end: "20:30", interval: 60 },  // 週三
+    4: { open: true, start: "11:30", end: "20:30", interval: 60 },  // 週四
+    5: { open: true, start: "11:30", end: "20:30", interval: 60 },  // 週五
+    6: { open: true, start: "11:30", end: "20:30", interval: 60 },  // 週六
+    0: { open: false, start: "11:30", end: "20:30", interval: 60 }  // 週日
+  }
 };
 
-let sysConfig = JSON.parse(localStorage.getItem("jifu_piercing_config")) || { ...DEFAULT_CONFIG };
+let loadedConfig = JSON.parse(localStorage.getItem("jifu_piercing_config"));
+let sysConfig;
+// 進行舊版數據結構的相容性檢查
+if (loadedConfig && loadedConfig.days) {
+  sysConfig = loadedConfig;
+} else {
+  sysConfig = JSON.parse(JSON.stringify(DEFAULT_CONFIG));
+}
 let bookingsList = JSON.parse(localStorage.getItem("jifu_piercing_bookings")) || [];
 
 // 初始化網頁設定
@@ -42,7 +54,8 @@ function initClientPage() {
     const dateObj = new Date(selectedDate);
     const dayOfWeek = dateObj.getDay(); // 0 是週日, 1-6 是週一至週六
     
-    if (!sysConfig.openDays.includes(dayOfWeek)) {
+    const dayConfig = sysConfig.days[dayOfWeek];
+    if (!dayConfig || !dayConfig.open) {
       alert("抱歉，您選擇的日期為本店休息日（未開放預約），請選擇其他營業日期！");
       dateInput.value = "";
       timeSelect.disabled = true;
@@ -51,16 +64,19 @@ function initClientPage() {
     }
     
     // 生成可預約時段
-    generateTimeOptions(timeSelect);
+    generateTimeOptions(timeSelect, dayOfWeek);
   });
 }
 
-// 根據設定生成時間段選項
-function generateTimeOptions(selectElement) {
+// 根據特定星期設定生成時間段選項
+function generateTimeOptions(selectElement, dayOfWeek) {
   selectElement.innerHTML = '<option value="" disabled selected>請選擇時段</option>';
   
-  const [startH, startM] = sysConfig.startTime.split(":").map(Number);
-  const [endH, endM] = sysConfig.endTime.split(":").map(Number);
+  const dayConfig = sysConfig.days[dayOfWeek];
+  if (!dayConfig) return;
+  
+  const [startH, startM] = dayConfig.start.split(":").map(Number);
+  const [endH, endM] = dayConfig.end.split(":").map(Number);
   
   let currentMin = startH * 60 + startM;
   const endMin = endH * 60 + endM;
@@ -75,7 +91,7 @@ function generateTimeOptions(selectElement) {
     option.textContent = timeStr;
     selectElement.appendChild(option);
     
-    currentMin += Number(sysConfig.interval);
+    currentMin += Number(dayConfig.interval);
   }
   
   selectElement.disabled = false;
@@ -261,57 +277,61 @@ function switchAdminTab(tabName) {
   }
 }
 
-// 載入時間設定表單數據
+// 載入時間設定表單數據 (從 LocalStorage 載入每一天的設定並填入後台)
 function loadTimeConfigForm() {
-  // 開放星期勾選
-  const checkboxes = document.querySelectorAll(".config-day");
-  checkboxes.forEach(cb => {
-    cb.checked = sysConfig.openDays.includes(Number(cb.value));
-  });
-  
-  // 起迄時間與時段間隔
-  document.getElementById("config-start-time").value = sysConfig.startTime;
-  document.getElementById("config-end-time").value = sysConfig.endTime;
-  document.getElementById("config-slot-interval").value = sysConfig.interval;
+  for (let day in sysConfig.days) {
+    const dayConfig = sysConfig.days[day];
+    const row = document.querySelector(`#config-days-tbody tr[data-day="${day}"]`);
+    if (row) {
+      row.querySelector(".cfg-open").checked = dayConfig.open;
+      row.querySelector(".cfg-start").value = dayConfig.start;
+      row.querySelector(".cfg-end").value = dayConfig.end;
+      row.querySelector(".cfg-interval").value = dayConfig.interval;
+    }
+  }
   
   // 更新後台手動預約的日期限制
   const manualDateInput = document.getElementById("manual-date");
   manualDateInput.min = new Date().toISOString().split("T")[0];
 }
 
-// 儲存時間設定
+// 儲存每日自訂預約時間設定
 function saveTimeSettings() {
-  const checkboxes = document.querySelectorAll(".config-day:checked");
-  const selectedDays = Array.from(checkboxes).map(cb => Number(cb.value));
+  const newDaysConfig = {};
+  const rows = document.querySelectorAll("#config-days-tbody tr");
+  let hasOpenDay = false;
   
-  if (selectedDays.length === 0) {
-    alert("請至少選擇一個開放預約的星期！");
+  for (let row of rows) {
+    const day = row.getAttribute("data-day");
+    const open = row.querySelector(".cfg-open").checked;
+    const start = row.querySelector(".cfg-start").value;
+    const end = row.querySelector(".cfg-end").value;
+    const interval = Number(row.querySelector(".cfg-interval").value);
+    
+    // 如果這天有開放，檢查時間的合理性
+    if (open) {
+      hasOpenDay = true;
+      const [startH, startM] = start.split(":").map(Number);
+      const [endH, endM] = end.split(":").map(Number);
+      if (startH * 60 + startM >= endH * 60 + endM) {
+        const dayNames = { "1": "週一", "2": "週二", "3": "週三", "4": "週四", "5": "週五", "6": "週六", "0": "週日" };
+        alert(`${dayNames[day]} 的開始營業時間不能晚於或等於最晚預約時間！`);
+        return;
+      }
+    }
+    
+    newDaysConfig[day] = { open, start, end, interval };
+  }
+  
+  if (!hasOpenDay) {
+    alert("請至少開放一天的預約營業時間！");
     return;
   }
   
-  const startTime = document.getElementById("config-start-time").value;
-  const endTime = document.getElementById("config-end-time").value;
-  const interval = Number(document.getElementById("config-slot-interval").value);
-  
-  // 檢查時間合理性
-  const [startH, startM] = startTime.split(":").map(Number);
-  const [endH, endM] = endTime.split(":").map(Number);
-  if (startH * 60 + startM >= endH * 60 + endM) {
-    alert("開始時間不能晚於或等於結束時間！");
-    return;
-  }
-  
-  // 更新系統變數
-  sysConfig = {
-    openDays: selectedDays,
-    startTime,
-    endTime,
-    interval
-  };
-  
-  // 儲存至 LocalStorage
+  // 更新系統設定並儲存
+  sysConfig.days = newDaysConfig;
   localStorage.setItem("jifu_piercing_config", JSON.stringify(sysConfig));
-  alert("預約時間設定已成功儲存！前台客人的可選時段已同步更新。");
+  alert("每日自訂預約時間設定已成功儲存！客人在前台將會看到您專屬設定的時間段。");
   
   // 重新初始化前台日期與時段控制
   initClientPage();
@@ -319,8 +339,8 @@ function saveTimeSettings() {
 
 // 重設時間設定為預設值
 function resetTimeSettingsDefault() {
-  if (confirm("確認要將預約時間設定回復至系統預設值（週一至週六 11:30 - 20:30）嗎？")) {
-    sysConfig = { ...DEFAULT_CONFIG };
+  if (confirm("確認要將預約時間設定回復至系統預設值（週一至週六 11:30 - 20:30 開放，週日休息）嗎？")) {
+    sysConfig = JSON.parse(JSON.stringify(DEFAULT_CONFIG));
     localStorage.setItem("jifu_piercing_config", JSON.stringify(sysConfig));
     loadTimeConfigForm();
     initClientPage();
@@ -341,11 +361,13 @@ function updateManualTimeOptions() {
   const dateObj = new Date(manualDate);
   const dayOfWeek = dateObj.getDay();
   
-  if (!sysConfig.openDays.includes(dayOfWeek)) {
-    alert("您選的日期是店休時間，若確定要強行預約，請確認客人口頭同意。系統仍為您生成營業時段選項。");
+  const dayConfig = sysConfig.days[dayOfWeek];
+  if (!dayConfig || !dayConfig.open) {
+    alert("提示：您選擇的日期在您的後台設定中是「休息日」。如果確認要手動建立預約，系統仍將為您提供該星期的預設時間選項。");
+    generateTimeOptions(manualTimeSelect, dayOfWeek);
+  } else {
+    generateTimeOptions(manualTimeSelect, dayOfWeek);
   }
-  
-  generateTimeOptions(manualTimeSelect);
 }
 
 // 商家手動新增預約送出
