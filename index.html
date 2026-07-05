@@ -254,8 +254,10 @@
 
   <!-- 預約成功彈出視窗 -->
   <div class="modal-overlay" id="success-modal">
-    <div class="modal glass-panel" style="max-width: 500px;">
-      <div class="modal-icon" style="background: rgba(0, 185, 0, 0.1); color: #00B900; border-color: #00B900;">✓</div>
+      <div class="modal-icon" style="background: transparent; border: none; width: auto; height: 60px; display: flex; justify-content: center; align-items: center; margin-bottom: 16px;">
+        <img src="logo.png?v=1.0.3" alt="吉富珠寶" style="height: 100%; max-width: 180px; object-fit: contain;" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+        <div style="display: none; background: rgba(0, 185, 0, 0.1); color: #00B900; border: 2px solid #00B900; width: 60px; height: 60px; border-radius: 50%; justify-content: center; align-items: center; font-size: 1.8rem; font-weight: bold; margin: 0 auto;">✓</div>
+      </div>
       <h3 style="color: var(--gold-light);">預約送出成功！</h3>
       <p style="font-size: 0.9rem; color: var(--text-secondary); margin-bottom: 12px;">請完成以下最後步驟，將預約結果通知我們以保留名額：</p>
       
