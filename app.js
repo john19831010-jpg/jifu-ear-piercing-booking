@@ -120,15 +120,27 @@ function generateTimeOptions(selectElement, dayOfWeek, selectedDateStr = "") {
   let currentMin = startH * 60 + startM;
   const endMin = endH * 60 + endM;
   
-  // 取得此日被關閉的時段黑名單
+  // 1. 取得此日被關閉的時段黑名單
   const blockedSlots = (selectedDateStr && sysConfig.specialDisabledSlots)
     ? (sysConfig.specialDisabledSlots[selectedDateStr] || [])
     : [];
   
-  // 取得此日已被預約佔用的時段 (不包含已取消的預約)
+  // 2. 即時從 localStorage 重新讀取最新的預約名單，避免全域變數過期快取！
+  let latestBookingsList = [];
+  try {
+    const localBookingsStr = localStorage.getItem("jifu_piercing_bookings");
+    if (localBookingsStr) {
+      latestBookingsList = JSON.parse(localBookingsStr) || [];
+    }
+  } catch (e) {
+    console.error("即時讀取預約名單失敗", e);
+    latestBookingsList = bookingsList;
+  }
+  
+  // 3. 取得此日已被預約佔用的時段 (不包含已取消的預約)
   const bookedSlots = [];
-  if (selectedDateStr && bookingsList) {
-    bookingsList.forEach(b => {
+  if (selectedDateStr && latestBookingsList) {
+    latestBookingsList.forEach(b => {
       if (b.date === selectedDateStr && b.status !== "已取消") {
         bookedSlots.push(b.time);
       }
@@ -233,7 +245,27 @@ function handleFormSubmit(e) {
     createTime: new Date().toLocaleString("zh-TW")
   };
   
+  // 在送出前，再次即時從 LocalStorage 檢查時段是否已被佔用，防止搶先預約衝突
+  let latestBookings = [];
+  try {
+    const localStr = localStorage.getItem("jifu_piercing_bookings");
+    if (localStr) {
+      latestBookings = JSON.parse(localStr) || [];
+    }
+  } catch (e) {
+    latestBookings = bookingsList;
+  }
+  const isDuplicate = latestBookings.some(b => b.date === date && b.time === time && b.status !== "已取消");
+  if (isDuplicate) {
+    alert("抱歉！您選擇的預約時段剛剛已被其他顧客預約走了。請重新選擇其他日期或時段，謝謝！");
+    const dateObj = new Date(date);
+    const dayOfWeek = dateObj.getDay();
+    generateTimeOptions(document.getElementById("booking-time"), dayOfWeek, date);
+    return;
+  }
+
   // 儲存至資料庫
+  bookingsList = latestBookings; // 更新記憶體中的名單
   bookingsList.push(newBooking);
   localStorage.setItem("jifu_piercing_bookings", JSON.stringify(bookingsList));
   
@@ -738,6 +770,26 @@ function handleManualSubmit(e) {
     createTime: new Date().toLocaleString("zh-TW")
   };
   
+  // 在手動新增前，再次即時從 LocalStorage 檢查時段是否已被佔用，防止重複
+  let latestBookings = [];
+  try {
+    const localStr = localStorage.getItem("jifu_piercing_bookings");
+    if (localStr) {
+      latestBookings = JSON.parse(localStr) || [];
+    }
+  } catch (e) {
+    latestBookings = bookingsList;
+  }
+  const isDuplicate = latestBookings.some(b => b.date === date && b.time === time && b.status !== "已取消");
+  if (isDuplicate) {
+    alert("建立預約失敗！該日期的此時段已被其他預約佔用。請重新選擇其他時段。");
+    const dateObj = new Date(date);
+    const dayOfWeek = dateObj.getDay();
+    generateTimeOptions(document.getElementById("manual-time"), dayOfWeek, date);
+    return;
+  }
+
+  bookingsList = latestBookings; // 更新記憶體中的名單
   bookingsList.push(newBooking);
   localStorage.setItem("jifu_piercing_bookings", JSON.stringify(bookingsList));
   
