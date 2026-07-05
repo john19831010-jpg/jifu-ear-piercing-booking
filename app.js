@@ -8,7 +8,8 @@ const DEFAULT_CONFIG = {
     5: { open: true, start: "11:30", end: "20:30", interval: 60 },  // 週五
     6: { open: true, start: "11:30", end: "20:30", interval: 60 },  // 週六
     0: { open: false, start: "11:30", end: "20:30", interval: 60 }  // 週日
-  }
+  },
+  leaveDates: [] // 臨時請假/店休日期黑名單
 };
 
 let loadedConfig = JSON.parse(localStorage.getItem("jifu_piercing_config"));
@@ -16,6 +17,7 @@ let sysConfig;
 // 進行舊版數據結構的相容性檢查
 if (loadedConfig && loadedConfig.days) {
   sysConfig = loadedConfig;
+  sysConfig.leaveDates = sysConfig.leaveDates || [];
 } else {
   sysConfig = JSON.parse(JSON.stringify(DEFAULT_CONFIG));
 }
@@ -45,6 +47,15 @@ function initClientPage() {
   dateInput.addEventListener("change", () => {
     const selectedDate = dateInput.value;
     if (!selectedDate) {
+      timeSelect.disabled = true;
+      timeSelect.innerHTML = '<option value="">請先選擇日期</option>';
+      return;
+    }
+    
+    // 檢查是否為特定臨時請假/店休日
+    if (sysConfig.leaveDates && sysConfig.leaveDates.includes(selectedDate)) {
+      alert("抱歉！當天因師父臨時請假/公休，暫未開放預約，請選擇其他日期，謝謝！");
+      dateInput.value = "";
       timeSelect.disabled = true;
       timeSelect.innerHTML = '<option value="">請先選擇日期</option>';
       return;
@@ -277,7 +288,7 @@ function switchAdminTab(tabName) {
   }
 }
 
-// 載入時間設定表單數據 (從 LocalStorage 載入每一天的設定並填入後台)
+// 載入時間設定表單數據 (從 LocalStorage 載入設定並填入後台)
 function loadTimeConfigForm() {
   for (let day in sysConfig.days) {
     const dayConfig = sysConfig.days[day];
@@ -290,9 +301,86 @@ function loadTimeConfigForm() {
     }
   }
   
+  // 載入臨時請假日期清單
+  loadLeaveDatesList();
+  
   // 更新後台手動預約的日期限制
   const manualDateInput = document.getElementById("manual-date");
   manualDateInput.min = new Date().toISOString().split("T")[0];
+  
+  // 設定後台休假日期選擇器的最小值為今天
+  const leaveDateInput = document.getElementById("config-leave-date");
+  if (leaveDateInput) {
+    leaveDateInput.min = new Date().toISOString().split("T")[0];
+  }
+}
+
+// 渲染已設定的請假日期標籤列表
+function loadLeaveDatesList() {
+  const container = document.getElementById("leave-dates-list");
+  if (!container) return;
+  
+  container.innerHTML = "";
+  const leaveDates = sysConfig.leaveDates || [];
+  
+  if (leaveDates.length === 0) {
+    container.innerHTML = `<span style="color: var(--text-muted); font-size: 0.9rem;">（目前無設定特定休假日）</span>`;
+    return;
+  }
+  
+  // 將請假日期由近到遠排序
+  const sortedDates = [...leaveDates].sort((a, b) => a.localeCompare(b));
+  
+  sortedDates.forEach(dateStr => {
+    const badge = document.createElement("span");
+    badge.className = "status-badge status-cancelled";
+    badge.style.cssText = "display: inline-flex; align-items: center; gap: 8px; padding: 6px 12px; font-size: 0.85rem; border-radius: 50px;";
+    badge.innerHTML = `
+      ${dateStr} 
+      <span style="cursor: pointer; font-weight: bold; font-size: 1.1rem; color: #FF453A; margin-left: 4px;" onclick="deleteLeaveDate('${dateStr}')">×</span>
+    `;
+    container.appendChild(badge);
+  });
+}
+
+// 新增請假日期
+function addLeaveDate() {
+  const dateInput = document.getElementById("config-leave-date");
+  const selectedDate = dateInput.value;
+  
+  if (!selectedDate) {
+    alert("請先選擇要設定的休假日期！");
+    return;
+  }
+  
+  sysConfig.leaveDates = sysConfig.leaveDates || [];
+  
+  if (sysConfig.leaveDates.includes(selectedDate)) {
+    alert("該日期已經在休假清單中了！");
+    return;
+  }
+  
+  sysConfig.leaveDates.push(selectedDate);
+  localStorage.setItem("jifu_piercing_config", JSON.stringify(sysConfig));
+  
+  alert(`成功加入休假日期：${selectedDate}！`);
+  dateInput.value = "";
+  
+  // 重新載入
+  loadLeaveDatesList();
+  initClientPage();
+}
+
+// 刪除請假日期
+function deleteLeaveDate(dateStr) {
+  if (confirm(`確定要取消 ${dateStr} 的休假，重新開放預約嗎？`)) {
+    sysConfig.leaveDates = sysConfig.leaveDates || [];
+    sysConfig.leaveDates = sysConfig.leaveDates.filter(d => d !== dateStr);
+    localStorage.setItem("jifu_piercing_config", JSON.stringify(sysConfig));
+    
+    loadLeaveDatesList();
+    initClientPage();
+  }
 }
 
 // 儲存每日自訂預約時間設定
@@ -356,6 +444,11 @@ function updateManualTimeOptions() {
   if (!manualDate) {
     manualTimeSelect.innerHTML = '<option value="">請先選擇日期</option>';
     return;
+  }
+  
+  // 檢查是否為請假黑名單日期
+  if (sysConfig.leaveDates && sysConfig.leaveDates.includes(manualDate)) {
+    alert("提示：您選擇的日期是「師父臨時請假/店休日」。如果確定要強行建立預約，系統仍會提供該星期的預設時間選項。");
   }
   
   const dateObj = new Date(manualDate);

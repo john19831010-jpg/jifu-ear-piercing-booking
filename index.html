@@ -624,6 +624,27 @@
               <button class="gold-btn" onclick="saveTimeSettings()">💾 儲存設定並記憶</button>
               <button class="dark-btn" onclick="resetTimeSettingsDefault()">回復系統預設值</button>
             </div>
+
+            <!-- 師父臨時請假/店休特定日期設定 -->
+            <div style="margin-top: 40px; border-top: 1px dashed var(--gold-border); padding-top: 32px;">
+              <h3 style="margin-bottom: 12px; border-left: 3px solid #FF453A; padding-left: 12px;">📅 師父臨時請假 / 特定日期店休設定</h3>
+              <p style="color: var(--text-secondary); font-size: 0.9rem; margin-bottom: 20px;">
+                有時候師父臨時請假、出國或有特定節日公休，您可以在下方選擇日期並加入。設定後，前台預約系統會自動阻擋客人選擇該日期。
+              </p>
+              
+              <div style="display: flex; gap: 12px; align-items: center; margin-bottom: 24px; flex-wrap: wrap;">
+                <div>
+                  <span style="font-size: 0.9rem; color: var(--text-secondary);">選擇休假日期：</span>
+                  <input type="date" id="config-leave-date" style="padding: 10px 16px;">
+                </div>
+                <button class="gold-btn" style="padding: 10px 24px; font-size: 0.9rem; background: linear-gradient(135deg, #FF453A, #FF9500); color: white;" onclick="addLeaveDate()">➕ 加入休假日期</button>
+              </div>
+
+              <h4 style="font-size: 0.95rem; margin-bottom: 12px; color: var(--gold-light);">目前已設定的休假日期：</h4>
+              <div id="leave-dates-list" style="display: flex; gap: 10px; flex-wrap: wrap;">
+                <span style="color: var(--text-muted); font-size: 0.9rem;">（無設定特定休假日）</span>
+              </div>
+            </div>
           </div>
         </div>
       </div>
