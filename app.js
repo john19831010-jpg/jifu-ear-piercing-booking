@@ -1,9 +1,9 @@
 // --- 系統初始化與變數定義 ---
-const CONFIG_VERSION = "1.0.3";
+const CONFIG_VERSION = "1.0.4";
 const DEFAULT_CONFIG = {
   configVersion: CONFIG_VERSION,
   days: {
-    1: { open: true, start: "11:30", end: "20:30", interval: 60 },  // 週一
+    1: { open: true, start: "13:30", end: "20:30", interval: 60 },  // 週一 (13:30開始)
     2: { open: true, start: "11:30", end: "20:30", interval: 60 },  // 週二
     3: { open: true, start: "11:30", end: "20:30", interval: 60 },  // 週三
     4: { open: true, start: "11:30", end: "20:30", interval: 60 },  // 週四
