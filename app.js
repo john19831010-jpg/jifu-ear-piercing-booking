@@ -124,24 +124,8 @@ function generateTimeOptions(selectElement, dayOfWeek, selectedDateStr = "") {
     selectElement.disabled = false;
   }
 }
-* 60 + startM;
-  const endMin = endH * 60 + endM;
-  
-  while (currentMin <= endMin) {
-    const h = Math.floor(currentMin / 60);
-    const m = currentMin % 60;
-    const timeStr = `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}`;
-    
-    const option = document.createElement("option");
-    option.value = timeStr;
-    option.textContent = timeStr;
-    selectElement.appendChild(option);
-    
-    currentMin += Number(dayConfig.interval);
-  }
-  
-  selectElement.disabled = false;
-}
+
+
 
 // 顧客送出預約表單
 function handleFormSubmit(e) {
