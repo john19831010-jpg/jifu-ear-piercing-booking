@@ -254,16 +254,28 @@
 
   <!-- 預約成功彈出視窗 -->
   <div class="modal-overlay" id="success-modal">
-    <div class="modal glass-panel">
-      <div class="modal-icon">✓</div>
-      <h3>預約送出成功！</h3>
-      <p>請複製下方預約資料，發送至吉富珠寶 LINE 客服，我們將為您保留名額並確認！</p>
-      <div class="copy-area" id="line-text-area">
+    <div class="modal glass-panel" style="max-width: 500px;">
+      <div class="modal-icon" style="background: rgba(0, 185, 0, 0.1); color: #00B900; border-color: #00B900;">✓</div>
+      <h3 style="color: var(--gold-light);">預約送出成功！</h3>
+      <p style="font-size: 0.9rem; color: var(--text-secondary); margin-bottom: 12px;">請完成以下最後步驟，將預約結果通知我們以保留名額：</p>
+      
+      <!-- LINE 官方帳號導流與通知框 -->
+      <div style="background: rgba(0, 185, 0, 0.1); border: 1px solid #00B900; border-radius: 8px; padding: 16px; margin: 16px 0; text-align: left; font-size: 0.85rem; color: var(--text-primary); line-height: 1.6;">
+        <strong style="color: #00B900; display: block; font-size: 0.95rem; margin-bottom: 8px; text-align: center;">🟢 最後步驟：加入 LINE 傳送預約</strong>
+        1. 點擊下方綠色按鈕：系統會<b>自動複製預約內容</b>並為您<b>打開 LINE</b>。<br>
+        2. 加入吉富珠寶官方 LINE ID：<b>@oso8857f</b>。<br>
+        3. 在對話框中<b>貼上並傳送</b>，老闆收到後確認即預約完成！
+      </div>
+
+      <div class="copy-area" id="line-text-area" style="font-size: 0.85rem; max-height: 120px; overflow-y: auto; text-align: left; background: rgba(0,0,0,0.2);">
         <!-- LINE 文字內容 -->
       </div>
-      <div class="modal-buttons">
-        <button class="gold-btn" onclick="copyLineText()">一鍵複製 LINE 文字</button>
-        <button class="dark-btn" onclick="closeSuccessModal()">關閉視窗</button>
+      
+      <div style="display: flex; flex-direction: column; gap: 10px; width: 100%; margin-top: 20px;">
+        <button class="gold-btn" style="background: linear-gradient(135deg, #00B900, #009E00); color: white; border: none; font-weight: bold; padding: 12px; font-size: 0.95rem; border-radius: var(--radius-sm);" onclick="copyAndGoToLine()">
+          💬 複製預約內容並打開 LINE 傳送
+        </button>
+        <button class="dark-btn" style="padding: 10px;" onclick="closeSuccessModal()">關閉視窗</button>
       </div>
     </div>
   </div>
@@ -700,7 +712,7 @@
   </footer>
 
   <!-- 引入預約系統腳本 -->
-  <script src="export.js?v=1.0.2"></script>
-  <script src="app.js?v=1.0.2"></script>
+  <script src="export.js?v=1.0.3"></script>
+  <script src="app.js?v=1.0.3"></script>
 </body>
 </html>

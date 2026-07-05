@@ -253,12 +253,15 @@ function handleFormSubmit(e) {
   document.getElementById("booking-time").innerHTML = '<option value="">請先選擇日期</option>';
 }
 
-function copyLineText() {
+function copyAndGoToLine() {
   const lineText = document.getElementById("line-text-area").textContent;
   navigator.clipboard.writeText(lineText).then(() => {
-    alert("複製成功！您可以直接開啟 LINE 貼上發送給老闆囉！");
+    alert("預約內容已成功複製！即將為您打開吉富珠寶官方 LINE，請點擊「加入好友」並在對話框中直接「貼上並傳送」預約資訊即可！");
+    window.open("https://line.me/R/ti/p/%40oso8857f", "_blank");
   }).catch(err => {
-    alert("複製失敗，請手動全選複製。");
+    console.error("複製失敗：", err);
+    // 降級處理，依然嘗試開啟 LINE
+    window.open("https://line.me/R/ti/p/%40oso8857f", "_blank");
   });
 }
 
