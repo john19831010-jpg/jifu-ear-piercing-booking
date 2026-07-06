@@ -2,6 +2,11 @@
 const CONFIG_VERSION = "1.0.5"; 
 const DEFAULT_GAS_URL = "https://script.google.com/macros/s/AKfycbwUHhZtqKp9PCrkR-Qdt_D2p8lDUny7PU8IM7FIgDzQ8CYvEH_gW01trNVAemRU5zEjZw/exec";
 
+// 判定 Apps Script 網址是否合法 (避免複製時漏掉尾段字元)
+function isValidGasUrl(url) {
+  return url && url.startsWith("https://script.google.com/") && url.endsWith("/exec");
+}
+
 const DEFAULT_CONFIG = {
   configVersion: CONFIG_VERSION,
   gasUrl: DEFAULT_GAS_URL, // 預設使用老闆的 Apps Script 網頁應用程式網址，確保所有客人的裝置開箱即用
@@ -34,7 +39,11 @@ if (loadedConfig && loadedConfig.days && loadedConfig.configVersion === CONFIG_V
   sysConfig = loadedConfig;
   sysConfig.leaveDates = sysConfig.leaveDates || [];
   sysConfig.specialDisabledSlots = sysConfig.specialDisabledSlots || {};
-  sysConfig.gasUrl = sysConfig.gasUrl || DEFAULT_GAS_URL;
+  // 如果存檔的網址不合法 (比如被截斷了)，自動修正為正確的預設網址
+  if (!isValidGasUrl(sysConfig.gasUrl)) {
+    sysConfig.gasUrl = DEFAULT_GAS_URL;
+    localStorage.setItem("jifu_piercing_config", JSON.stringify(sysConfig));
+  }
 } else {
   // 首次載入或舊版本升級，強制套用最新預設營業時間，但保留請假、自訂時段與雲端網址
   sysConfig = JSON.parse(JSON.stringify(DEFAULT_CONFIG));
@@ -42,7 +51,7 @@ if (loadedConfig && loadedConfig.days && loadedConfig.configVersion === CONFIG_V
   if (loadedConfig) {
     sysConfig.leaveDates = loadedConfig.leaveDates || [];
     sysConfig.specialDisabledSlots = loadedConfig.specialDisabledSlots || {};
-    sysConfig.gasUrl = loadedConfig.gasUrl || DEFAULT_GAS_URL;
+    sysConfig.gasUrl = isValidGasUrl(loadedConfig.gasUrl) ? loadedConfig.gasUrl : DEFAULT_GAS_URL;
   }
   localStorage.setItem("jifu_piercing_config", JSON.stringify(sysConfig));
 }
@@ -1164,8 +1173,8 @@ function saveGasUrl() {
   const urlInput = document.getElementById("config-gas-url");
   const url = urlInput.value.trim();
   
-  if (url && !url.startsWith("https://script.google.com/macros/")) {
-    alert("請輸入合法的 Google Apps Script 網頁應用程式網址！\n應以 https://script.google.com/ 開頭。");
+  if (!isValidGasUrl(url)) {
+    alert("請輸入完整的 Google Apps Script 網頁應用程式網址！\n網址必須以 https://script.google.com/ 開頭，且結尾必須是 /exec。\n請檢查您的網址尾端是否被截斷了。");
     return;
   }
   
