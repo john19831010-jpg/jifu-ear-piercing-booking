@@ -125,6 +125,63 @@ function initClientPage() {
   });
 }
 
+// 統一標準化從 Local 或雲端取回的日期格式為 YYYY-MM-DD
+function normalizeDate(val) {
+  if (!val) return "";
+  const str = val.toString().trim();
+  
+  // 如果是 ISO 格式，例如 2026-07-06T16:00:00.000Z
+  if (str.includes("T")) {
+    const d = new Date(str);
+    const tzOffset = 8 * 60; // 台灣時區是 UTC+8
+    const localTime = new Date(d.getTime() + tzOffset * 60 * 1000);
+    const y = localTime.getUTCFullYear();
+    const m = String(localTime.getUTCMonth() + 1).padStart(2, "0");
+    const day = String(localTime.getUTCDate()).padStart(2, "0");
+    return `${y}-${m}-${day}`;
+  }
+  
+  // 如果是 2026/7/6 或是 2026/07/07，統一換成 YYYY-MM-DD
+  if (str.includes("/")) {
+    const parts = str.split("/");
+    if (parts.length === 3) {
+      return `${parts[0]}-${parts[1].padStart(2, "0")}-${parts[2].padStart(2, "0")}`;
+    }
+  }
+  
+  if (str.length >= 10) {
+    return str.substring(0, 10).replace(/\//g, "-");
+  }
+  
+  return str;
+}
+
+// 統一標準化從 Local 或雲端取回的時間格式為 HH:MM
+function normalizeTime(val) {
+  if (!val) return "";
+  const str = val.toString().trim();
+  
+  // 如果是 Google 的時間物件轉出來的 ISO 格式，例如 1899-12-30T03:30:00.000Z
+  if (str.includes("T")) {
+    const d = new Date(str);
+    const tzOffset = 8 * 60; // 台灣時區是 UTC+8
+    const localTime = new Date(d.getTime() + tzOffset * 60 * 1000);
+    const h = String(localTime.getUTCHours()).padStart(2, "0");
+    const m = String(localTime.getUTCMinutes()).padStart(2, "0");
+    return `${h}:${m}`;
+  }
+  
+  // 如果是 "11:30:00"，只取前五位 "11:30"
+  if (str.includes(":")) {
+    const parts = str.split(":");
+    if (parts.length >= 2) {
+      return `${parts[0].padStart(2, "0")}:${parts[1].padStart(2, "0")}`;
+    }
+  }
+  
+  return str;
+}
+
 // 根據特定星期設定與特定日期自訂過濾生成時段選項
 function generateTimeOptions(selectElement, dayOfWeek, selectedDateStr = "") {
   selectElement.innerHTML = '<option value="" disabled selected>請選擇時段</option>';
@@ -155,12 +212,17 @@ function generateTimeOptions(selectElement, dayOfWeek, selectedDateStr = "") {
     latestBookingsList = bookingsList;
   }
   
-  // 3. 取得此日已被預約佔用的時段 (不包含已取消的預約)
+  // 3. 取得此日已被預約佔用的時段 (不包含已取消的預約，使用標準化格式進行比對)
   const bookedSlots = [];
-  if (selectedDateStr && latestBookingsList) {
+  const targetDateFormatted = normalizeDate(selectedDateStr);
+  
+  if (targetDateFormatted && latestBookingsList) {
     latestBookingsList.forEach(b => {
-      if (b.date === selectedDateStr && b.status !== "已取消") {
-        bookedSlots.push(b.time);
+      const bDateFormatted = normalizeDate(b.date);
+      const bTimeFormatted = normalizeTime(b.time);
+      
+      if (bDateFormatted === targetDateFormatted && b.status !== "已取消") {
+        bookedSlots.push(bTimeFormatted);
       }
     });
   }
@@ -331,7 +393,7 @@ function handleFormSubmit(e) {
     });
   } else {
     // 降級使用純單機模式 LocalStorage
-    const isDuplicate = latestBookings.some(b => b.date === date && b.time === time && b.status !== "已取消");
+    const isDuplicate = latestBookings.some(b => normalizeDate(b.date) === normalizeDate(date) && normalizeTime(b.time) === normalizeTime(time) && b.status !== "已取消");
     if (isDuplicate) {
       alert("抱歉！您選擇的預約時段剛剛已被其他顧客預約走了。請重新選擇其他日期或時段，謝謝！");
       const dateObj = new Date(date);
@@ -889,7 +951,7 @@ function handleManualSubmit(e) {
     });
   } else {
     // 降級使用純單機模式 LocalStorage
-    const isDuplicate = latestBookings.some(b => b.date === date && b.time === time && b.status !== "已取消");
+    const isDuplicate = latestBookings.some(b => normalizeDate(b.date) === normalizeDate(date) && normalizeTime(b.time) === normalizeTime(time) && b.status !== "已取消");
     if (isDuplicate) {
       alert("建立預約失敗！該日期的此時段已被其他預約佔用。請重新選擇其他時段。");
       const dateObj = new Date(date);
