@@ -288,9 +288,7 @@ function handleFormSubmit(e) {
     }
 
     const url = sysConfig.gasUrl + "?action=addBooking&data=" + encodeURIComponent(JSON.stringify(newBooking));
-    fetch(url)
-    .then(res => res.json())
-    .then(result => {
+    callJsonp(url, "cbAddBooking", (result) => {
       if (submitBtn) {
         submitBtn.disabled = false;
         submitBtn.innerText = originalBtnText;
@@ -312,9 +310,8 @@ function handleFormSubmit(e) {
       } else {
         alert("預約失敗，原因：" + (result.error || "未知錯誤"));
       }
-    })
-    .catch(err => {
-      console.error("雲端預約失敗，嘗試降級寫入本地", err);
+    }, (err) => {
+      console.error("雲端預約失敗", err);
       if (submitBtn) {
         submitBtn.disabled = false;
         submitBtn.innerText = originalBtnText;
@@ -850,9 +847,7 @@ function handleManualSubmit(e) {
     }
 
     const url = sysConfig.gasUrl + "?action=addBooking&data=" + encodeURIComponent(JSON.stringify(newBooking));
-    fetch(url)
-    .then(res => res.json())
-    .then(result => {
+    callJsonp(url, "cbManualAdd", (result) => {
       if (submitBtn) {
         submitBtn.disabled = false;
         submitBtn.innerText = originalBtnText;
@@ -874,8 +869,7 @@ function handleManualSubmit(e) {
       } else {
         alert("手動建立預約失敗，原因：" + (result.error || "未知錯誤"));
       }
-    })
-    .catch(err => {
+    }, (err) => {
       console.error("雲端手動預約失敗", err);
       if (submitBtn) {
         submitBtn.disabled = false;
@@ -985,7 +979,6 @@ function renderBookingList() {
 }
 
 // 變更預約狀態
-// 變更預約狀態
 function changeBookingStatus(id, newStatus) {
   bookingsList = bookingsList.map(b => {
     if (b.id === id) {
@@ -997,12 +990,9 @@ function changeBookingStatus(id, newStatus) {
   
   if (sysConfig.gasUrl) {
     const url = sysConfig.gasUrl + "?action=updateBookingStatus&id=" + id + "&status=" + encodeURIComponent(newStatus);
-    fetch(url)
-    .then(res => res.json())
-    .then(res => {
+    callJsonp(url, "cbUpdateStatus", (res) => {
       if (!res.success) console.error("雲端更新狀態失敗", res.error);
-    })
-    .catch(err => console.error("雲端連線更新狀態失敗", err));
+    }, (err) => console.error("雲端連線更新狀態失敗", err));
   }
   
   renderBookingList();
@@ -1020,12 +1010,9 @@ function updateBookingNote(id, newNote) {
   
   if (sysConfig.gasUrl) {
     const url = sysConfig.gasUrl + "?action=updateBookingNote&id=" + id + "&note=" + encodeURIComponent(newNote);
-    fetch(url)
-    .then(res => res.json())
-    .then(res => {
+    callJsonp(url, "cbUpdateNote", (res) => {
       if (!res.success) console.error("雲端更新備註失敗", res.error);
-    })
-    .catch(err => console.error("雲端連線更新備註失敗", err));
+    }, (err) => console.error("雲端連線更新備註失敗", err));
   }
 }
 
@@ -1037,12 +1024,9 @@ function deleteBooking(id) {
     
     if (sysConfig.gasUrl) {
       const url = sysConfig.gasUrl + "?action=deleteBooking&id=" + id;
-      fetch(url)
-      .then(res => res.json())
-      .then(res => {
+      callJsonp(url, "cbDelete", (res) => {
         if (!res.success) console.error("雲端刪除失敗", res.error);
-      })
-      .catch(err => console.error("雲端連線刪除失敗", err));
+      }, (err) => console.error("雲端連線刪除失敗", err));
     }
     
     renderBookingList();
@@ -1063,16 +1047,13 @@ function clearFilters() {
 function saveConfigToCloud() {
   if (sysConfig.gasUrl) {
     const url = sysConfig.gasUrl + "?action=saveConfig&data=" + encodeURIComponent(JSON.stringify(sysConfig));
-    fetch(url)
-    .then(res => res.json())
-    .then(res => {
+    callJsonp(url, "cbSaveConfig", (res) => {
       if (!res.success) console.error("雲端備份時間設定失敗", res.error);
-    })
-    .catch(err => console.error("雲端連線儲存時間設定失敗", err));
+    }, (err) => console.error("雲端連線儲存時間設定失敗", err));
   }
 }
 
-// 與雲端試算表非同步資料同步 (雙模設計)
+// 與雲端試算表非同步資料同步 (雙模設計 - 全面使用 JSONP)
 function syncWithCloud() {
   const statusBadge = document.getElementById("cloud-sync-status");
   const gasUrlInput = document.getElementById("config-gas-url");
@@ -1096,9 +1077,7 @@ function syncWithCloud() {
   }
   
   // 1. 同步獲取雲端預約名單
-  fetch(sysConfig.gasUrl + "?action=getBookings")
-  .then(res => res.json())
-  .then(cloudBookings => {
+  callJsonp(sysConfig.gasUrl + "?action=getBookings", "cbGetBookings", (cloudBookings) => {
     if (Array.isArray(cloudBookings)) {
       // 成功獲取，更新本地備份
       bookingsList = cloudBookings;
@@ -1116,19 +1095,16 @@ function syncWithCloud() {
       // 重新渲染後台名單
       renderBookingList();
     }
-  })
-  .catch(err => {
+  }, (err) => {
     console.error("同步預約名單失敗，降級使用 LocalStorage", err);
     if (statusBadge) {
       statusBadge.innerText = "⚠️ 連線失敗 (降級單機運作)";
-      statusBadge.style.cssText = "background: rgba(255, 149, 0, 0.15); color: #FF9500; border: 1px solid #FF9500; font-size: 0.8rem; padding: 4px 12px; border-radius: 50px;";
+      statusBadge.style.cssText = "background: rgba(255, 69, 58, 0.15); color: #FF453A; border: 1px solid #FF453A; font-size: 0.8rem; padding: 4px 12px; border-radius: 50px;";
     }
   });
 
   // 2. 同步獲取雲端營業配置
-  fetch(sysConfig.gasUrl + "?action=getConfig")
-  .then(res => res.json())
-  .then(res => {
+  callJsonp(sysConfig.gasUrl + "?action=getConfig", "cbGetConfig", (res) => {
     if (res.configStr) {
       const cloudConfig = JSON.parse(res.configStr);
       // 如果雲端有較新的配置，更新本地，但維持本地的 gasUrl
@@ -1153,8 +1129,7 @@ function syncWithCloud() {
         loadSpecialDatesList();
       }
     }
-  })
-  .catch(err => console.error("同步設定失敗，降級使用 LocalStorage 營業配置", err));
+  }, (err) => console.error("同步設定失敗，降級使用 LocalStorage 營業配置", err));
 }
 
 // 儲存 GAS 網址 (在後台點擊儲存按鈕)
@@ -1198,9 +1173,7 @@ function syncLocalBookingsToCloud() {
   const localBookings = JSON.parse(localStorage.getItem("jifu_piercing_bookings")) || [];
   
   // 再次取得雲端 ID
-  fetch(sysConfig.gasUrl + "?action=getBookings")
-  .then(res => res.json())
-  .then(cloudBookings => {
+  callJsonp(sysConfig.gasUrl + "?action=getBookings", "cbSyncLocalCheck", (cloudBookings) => {
     if (Array.isArray(cloudBookings)) {
       const cloudIds = cloudBookings.map(b => b.id.toString());
       const diffBookings = localBookings.filter(b => !cloudIds.includes(b.id.toString()));
@@ -1226,16 +1199,12 @@ function syncLocalBookingsToCloud() {
         
         const booking = diffBookings[index];
         const url = sysConfig.gasUrl + "?action=addBooking&data=" + encodeURIComponent(JSON.stringify(booking));
-        fetch(url)
-        .then(res => res.json())
-        .then(res => {
+        callJsonp(url, "cbUploadItem", (res) => {
           if (res.success) successCount++;
           else if (res.conflict) conflictCount++;
           else errorCount++;
           uploadNext(index + 1);
-        })
-        .catch(err => {
-          console.error("同步上傳單筆預約失敗", err);
+        }, () => {
           errorCount++;
           uploadNext(index + 1);
         });
@@ -1244,9 +1213,51 @@ function syncLocalBookingsToCloud() {
       alert(`準備開始上傳同步 ${diffBookings.length} 筆歷史資料，這可能需要幾秒鐘，請勿關閉網頁...`);
       uploadNext(0);
     }
-  })
-  .catch(err => {
-    console.error("同步取得雲端名單失敗", err);
+  }, () => {
     alert("同步失敗，請確認您的雲端試算表連線狀態正常！");
   });
 }
+
+// ==========================================
+// 🌐 JSONP 跨網域請求輔助函數 (徹底解決 CORS 與重定向封鎖)
+// ==========================================
+function callJsonp(urlWithoutCallback, callbackNamePrefix, successCallback, errorCallback) {
+  const uniqueCallbackName = callbackNamePrefix + "_" + Math.floor(Math.random() * 10000000);
+  
+  // 建立全域回調函數
+  window[uniqueCallbackName] = function(data) {
+    cleanup();
+    if (successCallback) successCallback(data);
+  };
+  
+  // 設定 12 秒超時防護
+  const timeoutId = setTimeout(() => {
+    cleanup();
+    if (errorCallback) errorCallback(new Error("連線超時，請確認您的 Google 試算表部署是否正確！"));
+  }, 12000);
+  
+  function cleanup() {
+    clearTimeout(timeoutId);
+    try {
+      delete window[uniqueCallbackName];
+    } catch (e) {
+      window[uniqueCallbackName] = undefined;
+    }
+    if (script.parentNode) {
+      script.parentNode.removeChild(script);
+    }
+  }
+  
+  // 建立 script 標籤並附加 callback 參數
+  const script = document.createElement("script");
+  const separator = urlWithoutCallback.includes("?") ? "&" : "?";
+  script.src = urlWithoutCallback + separator + "callback=" + uniqueCallbackName;
+  
+  script.onerror = function() {
+    cleanup();
+    if (errorCallback) errorCallback(new Error("網路載入失敗，可能網址輸入錯誤或權限未開啟！"));
+  };
+  
+  document.head.appendChild(script);
+}
+

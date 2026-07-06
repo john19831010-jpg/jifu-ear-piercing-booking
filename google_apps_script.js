@@ -4,31 +4,32 @@
 
 function doGet(e) {
   var action = e.parameter.action;
+  var callback = e.parameter.callback; // 獲取 JSONP 回調函數名
   
   if (action === "getBookings") {
-    return getBookings();
+    return getBookings(callback);
   } else if (action === "getConfig") {
-    return getConfig();
+    return getConfig(callback);
   } else if (action === "addBooking") {
     var data = JSON.parse(decodeURIComponent(e.parameter.data));
-    return addBooking(data);
+    return addBooking(data, callback);
   } else if (action === "updateBookingStatus") {
     var id = e.parameter.id;
     var status = e.parameter.status;
-    return updateBookingStatus(id, status);
+    return updateBookingStatus(id, status, callback);
   } else if (action === "updateBookingNote") {
     var id = e.parameter.id;
     var note = e.parameter.note;
-    return updateBookingNote(id, note);
+    return updateBookingNote(id, note, callback);
   } else if (action === "deleteBooking") {
     var id = e.parameter.id;
-    return deleteBooking(id);
+    return deleteBooking(id, callback);
   } else if (action === "saveConfig") {
     var data = JSON.parse(decodeURIComponent(e.parameter.data));
-    return saveConfig(data);
+    return saveConfig(data, callback);
   }
   
-  return createResponse({ error: "Invalid GET action" }, 400);
+  return createResponse({ error: "Invalid GET action" }, callback);
 }
 
 function doPost(e) {
@@ -37,28 +38,28 @@ function doPost(e) {
   try {
     payload = JSON.parse(e.postData.contents);
   } catch (error) {
-    return createResponse({ error: "Invalid JSON format" }, 400);
+    return createResponse({ error: "Invalid JSON format" }, null);
   }
   
   var action = payload.action;
   
   if (action === "addBooking") {
-    return addBooking(payload.data);
+    return addBooking(payload.data, null);
   } else if (action === "updateBookingStatus") {
-    return updateBookingStatus(payload.id, payload.status);
+    return updateBookingStatus(payload.id, payload.status, null);
   } else if (action === "updateBookingNote") {
-    return updateBookingNote(payload.id, payload.note);
+    return updateBookingNote(payload.id, payload.note, null);
   } else if (action === "deleteBooking") {
-    return deleteBooking(payload.id);
+    return deleteBooking(payload.id, null);
   } else if (action === "saveConfig") {
-    return saveConfig(payload.data);
+    return saveConfig(payload.data, null);
   }
   
-  return createResponse({ error: "Invalid POST action" }, 400);
+  return createResponse({ error: "Invalid POST action" }, null);
 }
 
 // 獲取所有預約
-function getBookings() {
+function getBookings(callback) {
   var sheet = getOrCreateSheet("Bookings");
   var lastRow = sheet.getLastRow();
   var bookings = [];
@@ -76,11 +77,11 @@ function getBookings() {
       bookings.push(booking);
     }
   }
-  return createResponse(bookings);
+  return createResponse(bookings, callback);
 }
 
 // 新增預約 (含雲端衝突防護)
-function addBooking(bookingData) {
+function addBooking(bookingData, callback) {
   var sheet = getOrCreateSheet("Bookings");
   var headers = ["id", "name", "phone", "line", "date", "time", "material", "position", "potion", "totalPrice", "note", "status", "createTime"];
   
@@ -99,7 +100,7 @@ function addBooking(bookingData) {
       if (row[4].toString() === bookingData.date.toString() && 
           row[5].toString() === bookingData.time.toString() && 
           row[11].toString() !== "已取消") {
-        return createResponse({ success: false, conflict: true, error: "這個時段已被他人預約佔用！" });
+        return createResponse({ success: false, conflict: true, error: "這個時段已被他人預約佔用！" }, callback);
       }
     }
   }
@@ -109,11 +110,11 @@ function addBooking(bookingData) {
   });
   
   sheet.appendRow(newRow);
-  return createResponse({ success: true });
+  return createResponse({ success: true }, callback);
 }
 
 // 修改預約狀態
-function updateBookingStatus(id, status) {
+function updateBookingStatus(id, status, callback) {
   var sheet = getOrCreateSheet("Bookings");
   var lastRow = sheet.getLastRow();
   
@@ -122,15 +123,15 @@ function updateBookingStatus(id, status) {
     for (var i = 0; i < ids.length; i++) {
       if (ids[i][0].toString() === id.toString()) {
         sheet.getRange(i + 2, 12).setValue(status); // 第 12 欄是 status (狀態)
-        return createResponse({ success: true });
+        return createResponse({ success: true }, callback);
       }
     }
   }
-  return createResponse({ success: false, error: "找不到該預約編號" });
+  return createResponse({ success: false, error: "找不到該預約編號" }, callback);
 }
 
 // 修改預約備註
-function updateBookingNote(id, note) {
+function updateBookingNote(id, note, callback) {
   var sheet = getOrCreateSheet("Bookings");
   var lastRow = sheet.getLastRow();
   
@@ -139,15 +140,15 @@ function updateBookingNote(id, note) {
     for (var i = 0; i < ids.length; i++) {
       if (ids[i][0].toString() === id.toString()) {
         sheet.getRange(i + 2, 11).setValue(note); // 第 11 欄是 note (備註)
-        return createResponse({ success: true });
+        return createResponse({ success: true }, callback);
       }
     }
   }
-  return createResponse({ success: false, error: "找不到該預約編號" });
+  return createResponse({ success: false, error: "找不到該預約編號" }, callback);
 }
 
 // 刪除預約
-function deleteBooking(id) {
+function deleteBooking(id, callback) {
   var sheet = getOrCreateSheet("Bookings");
   var lastRow = sheet.getLastRow();
   
@@ -156,15 +157,15 @@ function deleteBooking(id) {
     for (var i = 0; i < ids.length; i++) {
       if (ids[i][0].toString() === id.toString()) {
         sheet.deleteRow(i + 2);
-        return createResponse({ success: true });
+        return createResponse({ success: true }, callback);
       }
     }
   }
-  return createResponse({ success: false, error: "找不到該預約編號" });
+  return createResponse({ success: false, error: "找不到該預約編號" }, callback);
 }
 
 // 讀取營業配置
-function getConfig() {
+function getConfig(callback) {
   var sheet = getOrCreateSheet("Config");
   var lastRow = sheet.getLastRow();
   var configVal = "";
@@ -179,11 +180,11 @@ function getConfig() {
     }
   }
   
-  return createResponse({ configStr: configVal });
+  return createResponse({ configStr: configVal }, callback);
 }
 
 // 儲存營業配置
-function saveConfig(configData) {
+function saveConfig(configData, callback) {
   var sheet = getOrCreateSheet("Config");
   var lastRow = sheet.getLastRow();
   var foundRow = 0;
@@ -204,7 +205,7 @@ function saveConfig(configData) {
   } else {
     sheet.appendRow(["sys_config", configStr]);
   }
-  return createResponse({ success: true });
+  return createResponse({ success: true }, callback);
 }
 
 // 取得或自動建立工作表分頁
@@ -217,9 +218,15 @@ function getOrCreateSheet(name) {
   return sheet;
 }
 
-// 建立跨網域 回傳物件
-function createResponse(data, status) {
-  var output = ContentService.createTextOutput(JSON.stringify(data))
-    .setMimeType(ContentService.MimeType.JSON);
-  return output;
+// 建立跨網域回傳物件 (支援 JSONP)
+function createResponse(data, callbackName) {
+  var jsonString = JSON.stringify(data);
+  if (callbackName) {
+    var jsContent = callbackName + "(" + jsonString + ");";
+    return ContentService.createTextOutput(jsContent)
+      .setMimeType(ContentService.MimeType.JAVASCRIPT);
+  } else {
+    return ContentService.createTextOutput(jsonString)
+      .setMimeType(ContentService.MimeType.JSON);
+  }
 }
