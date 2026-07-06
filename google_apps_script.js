@@ -9,12 +9,30 @@ function doGet(e) {
     return getBookings();
   } else if (action === "getConfig") {
     return getConfig();
+  } else if (action === "addBooking") {
+    var data = JSON.parse(decodeURIComponent(e.parameter.data));
+    return addBooking(data);
+  } else if (action === "updateBookingStatus") {
+    var id = e.parameter.id;
+    var status = e.parameter.status;
+    return updateBookingStatus(id, status);
+  } else if (action === "updateBookingNote") {
+    var id = e.parameter.id;
+    var note = e.parameter.note;
+    return updateBookingNote(id, note);
+  } else if (action === "deleteBooking") {
+    var id = e.parameter.id;
+    return deleteBooking(id);
+  } else if (action === "saveConfig") {
+    var data = JSON.parse(decodeURIComponent(e.parameter.data));
+    return saveConfig(data);
   }
   
   return createResponse({ error: "Invalid GET action" }, 400);
 }
 
 function doPost(e) {
+  // 同步支援 POST 寫入作為備用
   var payload;
   try {
     payload = JSON.parse(e.postData.contents);

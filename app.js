@@ -287,16 +287,8 @@ function handleFormSubmit(e) {
       submitBtn.innerText = "⚡ 正在連線雲端預約中...";
     }
 
-    fetch(sysConfig.gasUrl, {
-      method: "POST",
-      headers: {
-        "Content-Type": "text/plain" // 使用 text/plain 可以繞過 CORS Preflight 預檢，提高連線成功率與速度
-      },
-      body: JSON.stringify({
-        action: "addBooking",
-        data: newBooking
-      })
-    })
+    const url = sysConfig.gasUrl + "?action=addBooking&data=" + encodeURIComponent(JSON.stringify(newBooking));
+    fetch(url)
     .then(res => res.json())
     .then(result => {
       if (submitBtn) {
@@ -857,14 +849,8 @@ function handleManualSubmit(e) {
       submitBtn.innerText = "⚡ 正在連線雲端資料庫...";
     }
 
-    fetch(sysConfig.gasUrl, {
-      method: "POST",
-      headers: { "Content-Type": "text/plain" },
-      body: JSON.stringify({
-        action: "addBooking",
-        data: newBooking
-      })
-    })
+    const url = sysConfig.gasUrl + "?action=addBooking&data=" + encodeURIComponent(JSON.stringify(newBooking));
+    fetch(url)
     .then(res => res.json())
     .then(result => {
       if (submitBtn) {
@@ -1010,11 +996,8 @@ function changeBookingStatus(id, newStatus) {
   localStorage.setItem("jifu_piercing_bookings", JSON.stringify(bookingsList));
   
   if (sysConfig.gasUrl) {
-    fetch(sysConfig.gasUrl, {
-      method: "POST",
-      headers: { "Content-Type": "text/plain" },
-      body: JSON.stringify({ action: "updateBookingStatus", id, status: newStatus })
-    })
+    const url = sysConfig.gasUrl + "?action=updateBookingStatus&id=" + id + "&status=" + encodeURIComponent(newStatus);
+    fetch(url)
     .then(res => res.json())
     .then(res => {
       if (!res.success) console.error("雲端更新狀態失敗", res.error);
@@ -1036,11 +1019,8 @@ function updateBookingNote(id, newNote) {
   localStorage.setItem("jifu_piercing_bookings", JSON.stringify(bookingsList));
   
   if (sysConfig.gasUrl) {
-    fetch(sysConfig.gasUrl, {
-      method: "POST",
-      headers: { "Content-Type": "text/plain" },
-      body: JSON.stringify({ action: "updateBookingNote", id, note: newNote })
-    })
+    const url = sysConfig.gasUrl + "?action=updateBookingNote&id=" + id + "&note=" + encodeURIComponent(newNote);
+    fetch(url)
     .then(res => res.json())
     .then(res => {
       if (!res.success) console.error("雲端更新備註失敗", res.error);
@@ -1056,11 +1036,8 @@ function deleteBooking(id) {
     localStorage.setItem("jifu_piercing_bookings", JSON.stringify(bookingsList));
     
     if (sysConfig.gasUrl) {
-      fetch(sysConfig.gasUrl, {
-        method: "POST",
-        headers: { "Content-Type": "text/plain" },
-        body: JSON.stringify({ action: "deleteBooking", id })
-      })
+      const url = sysConfig.gasUrl + "?action=deleteBooking&id=" + id;
+      fetch(url)
       .then(res => res.json())
       .then(res => {
         if (!res.success) console.error("雲端刪除失敗", res.error);
@@ -1085,11 +1062,8 @@ function clearFilters() {
 // 儲存設定至雲端 (Apps Script - Config 工作表)
 function saveConfigToCloud() {
   if (sysConfig.gasUrl) {
-    fetch(sysConfig.gasUrl, {
-      method: "POST",
-      headers: { "Content-Type": "text/plain" },
-      body: JSON.stringify({ action: "saveConfig", data: sysConfig })
-    })
+    const url = sysConfig.gasUrl + "?action=saveConfig&data=" + encodeURIComponent(JSON.stringify(sysConfig));
+    fetch(url)
     .then(res => res.json())
     .then(res => {
       if (!res.success) console.error("雲端備份時間設定失敗", res.error);
@@ -1251,11 +1225,8 @@ function syncLocalBookingsToCloud() {
         }
         
         const booking = diffBookings[index];
-        fetch(sysConfig.gasUrl, {
-          method: "POST",
-          headers: { "Content-Type": "text/plain" },
-          body: JSON.stringify({ action: "addBooking", data: booking })
-        })
+        const url = sysConfig.gasUrl + "?action=addBooking&data=" + encodeURIComponent(JSON.stringify(booking));
+        fetch(url)
         .then(res => res.json())
         .then(res => {
           if (res.success) successCount++;
