@@ -1,8 +1,10 @@
 // --- 系統初始化與變數定義 ---
 const CONFIG_VERSION = "1.0.5"; 
+const DEFAULT_GAS_URL = "https://script.google.com/macros/s/AKfycbwUHhZtqKp9PCrkR-Qdt_D2p8lDUny7PU8IM7FIgDzQ8CYvEH_gW01trNVAemRU5zEjZw/exec";
+
 const DEFAULT_CONFIG = {
   configVersion: CONFIG_VERSION,
-  gasUrl: "", // Google Apps Script 網頁應用程式網址，用於同步 Google 試算表
+  gasUrl: DEFAULT_GAS_URL, // 預設使用老闆的 Apps Script 網頁應用程式網址，確保所有客人的裝置開箱即用
   days: {
     1: { open: true, start: "13:30", end: "20:30", interval: 60 },  // 週一 (13:30開始)
     2: { open: true, start: "11:30", end: "20:30", interval: 60 },  // 週二
@@ -32,14 +34,15 @@ if (loadedConfig && loadedConfig.days && loadedConfig.configVersion === CONFIG_V
   sysConfig = loadedConfig;
   sysConfig.leaveDates = sysConfig.leaveDates || [];
   sysConfig.specialDisabledSlots = sysConfig.specialDisabledSlots || {};
-  sysConfig.gasUrl = sysConfig.gasUrl || "";
+  sysConfig.gasUrl = sysConfig.gasUrl || DEFAULT_GAS_URL;
 } else {
   // 首次載入或舊版本升級，強制套用最新預設營業時間，但保留請假、自訂時段與雲端網址
   sysConfig = JSON.parse(JSON.stringify(DEFAULT_CONFIG));
+  sysConfig.gasUrl = DEFAULT_GAS_URL;
   if (loadedConfig) {
     sysConfig.leaveDates = loadedConfig.leaveDates || [];
     sysConfig.specialDisabledSlots = loadedConfig.specialDisabledSlots || {};
-    sysConfig.gasUrl = loadedConfig.gasUrl || "";
+    sysConfig.gasUrl = loadedConfig.gasUrl || DEFAULT_GAS_URL;
   }
   localStorage.setItem("jifu_piercing_config", JSON.stringify(sysConfig));
 }
