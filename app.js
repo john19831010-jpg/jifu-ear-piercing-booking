@@ -133,12 +133,12 @@ function normalizeDate(val) {
   // 如果是 ISO 格式，例如 2026-07-06T16:00:00.000Z
   if (str.includes("T")) {
     const d = new Date(str);
-    const tzOffset = 8 * 60; // 台灣時區是 UTC+8
-    const localTime = new Date(d.getTime() + tzOffset * 60 * 1000);
-    const y = localTime.getUTCFullYear();
-    const m = String(localTime.getUTCMonth() + 1).padStart(2, "0");
-    const day = String(localTime.getUTCDate()).padStart(2, "0");
-    return `${y}-${m}-${day}`;
+    if (!isNaN(d.getTime())) {
+      const y = d.getFullYear();
+      const m = String(d.getMonth() + 1).padStart(2, "0");
+      const day = String(d.getDate()).padStart(2, "0");
+      return `${y}-${m}-${day}`;
+    }
   }
   
   // 如果是 2026/7/6 或是 2026/07/07，統一換成 YYYY-MM-DD
@@ -164,11 +164,11 @@ function normalizeTime(val) {
   // 如果是 Google 的時間物件轉出來的 ISO 格式，例如 1899-12-30T03:30:00.000Z
   if (str.includes("T")) {
     const d = new Date(str);
-    const tzOffset = 8 * 60; // 台灣時區是 UTC+8
-    const localTime = new Date(d.getTime() + tzOffset * 60 * 1000);
-    const h = String(localTime.getUTCHours()).padStart(2, "0");
-    const m = String(localTime.getUTCMinutes()).padStart(2, "0");
-    return `${h}:${m}`;
+    if (!isNaN(d.getTime())) {
+      const h = String(d.getHours()).padStart(2, "0");
+      const m = String(d.getMinutes()).padStart(2, "0");
+      return `${h}:${m}`;
+    }
   }
   
   // 如果是 "11:30:00"，只取前五位 "11:30"
