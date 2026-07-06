@@ -199,12 +199,9 @@ function getOrCreateSheet(name) {
   return sheet;
 }
 
-// 建立跨網域 CORS 回傳物件
+// 建立跨網域 回傳物件
 function createResponse(data, status) {
   var output = ContentService.createTextOutput(JSON.stringify(data))
-    .setMimeType(ContentService.MimeType.JSON)
-    .setHeader("Access-Control-Allow-Origin", "*")
-    .setHeader("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
-    .setHeader("Access-Control-Allow-Headers", "Content-Type");
+    .setMimeType(ContentService.MimeType.JSON);
   return output;
 }
