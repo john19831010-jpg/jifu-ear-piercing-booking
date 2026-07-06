@@ -1,7 +1,8 @@
 // --- 系統初始化與變數定義 ---
-const CONFIG_VERSION = "1.0.4";
+const CONFIG_VERSION = "1.0.5";
 const DEFAULT_CONFIG = {
   configVersion: CONFIG_VERSION,
+  gasUrl: "", // Google Apps Script 網頁應用程式網址，用於同步 Google 試算表
   days: {
     1: { open: true, start: "13:30", end: "20:30", interval: 60 },  // 週一 (13:30開始)
     2: { open: true, start: "11:30", end: "20:30", interval: 60 },  // 週二
@@ -31,12 +32,14 @@ if (loadedConfig && loadedConfig.days && loadedConfig.configVersion === CONFIG_V
   sysConfig = loadedConfig;
   sysConfig.leaveDates = sysConfig.leaveDates || [];
   sysConfig.specialDisabledSlots = sysConfig.specialDisabledSlots || {};
+  sysConfig.gasUrl = sysConfig.gasUrl || "";
 } else {
-  // 首次載入或舊版本升級，強制套用最新週五、六、日的營業時間預設，但保留請假與自訂時段
+  // 首次載入或舊版本升級，強制套用最新預設營業時間，但保留請假、自訂時段與雲端網址
   sysConfig = JSON.parse(JSON.stringify(DEFAULT_CONFIG));
   if (loadedConfig) {
     sysConfig.leaveDates = loadedConfig.leaveDates || [];
     sysConfig.specialDisabledSlots = loadedConfig.specialDisabledSlots || {};
+    sysConfig.gasUrl = loadedConfig.gasUrl || "";
   }
   localStorage.setItem("jifu_piercing_config", JSON.stringify(sysConfig));
 }
@@ -59,6 +62,9 @@ document.addEventListener("DOMContentLoaded", () => {
   // 監聽網址 Hash 變化，用於切換後台入口
   window.addEventListener("hashchange", checkUrlHash);
   checkUrlHash();
+  
+  // 啟動雲端試算表非同步資料同步
+  syncWithCloud();
 });
 
 // --- 前端顧客端邏輯 ---
@@ -255,19 +261,6 @@ function handleFormSubmit(e) {
   } catch (e) {
     latestBookings = bookingsList;
   }
-  const isDuplicate = latestBookings.some(b => b.date === date && b.time === time && b.status !== "已取消");
-  if (isDuplicate) {
-    alert("抱歉！您選擇的預約時段剛剛已被其他顧客預約走了。請重新選擇其他日期或時段，謝謝！");
-    const dateObj = new Date(date);
-    const dayOfWeek = dateObj.getDay();
-    generateTimeOptions(document.getElementById("booking-time"), dayOfWeek, date);
-    return;
-  }
-
-  // 儲存至資料庫
-  bookingsList = latestBookings; // 更新記憶體中的名單
-  bookingsList.push(newBooking);
-  localStorage.setItem("jifu_piercing_bookings", JSON.stringify(bookingsList));
   
   // 產生 LINE 一鍵複製格式
   const lineText = `【吉富珠寶銀樓 - 穿耳洞預約確認】
@@ -284,12 +277,80 @@ function handleFormSubmit(e) {
 - 預估金額：${newBooking.totalPrice}
 
 再麻煩老闆確認，謝謝您！`;
-  
-  // 顯示成功彈出對話框
+
+  // 檢查是否已設定雲端同步
+  if (sysConfig.gasUrl) {
+    const submitBtn = document.querySelector("#piercing-form button[type='submit']");
+    const originalBtnText = submitBtn ? submitBtn.innerText : "確認送出預約";
+    if (submitBtn) {
+      submitBtn.disabled = true;
+      submitBtn.innerText = "⚡ 正在連線雲端預約中...";
+    }
+
+    fetch(sysConfig.gasUrl, {
+      method: "POST",
+      headers: {
+        "Content-Type": "text/plain" // 使用 text/plain 可以繞過 CORS Preflight 預檢，提高連線成功率與速度
+      },
+      body: JSON.stringify({
+        action: "addBooking",
+        data: newBooking
+      })
+    })
+    .then(res => res.json())
+    .then(result => {
+      if (submitBtn) {
+        submitBtn.disabled = false;
+        submitBtn.innerText = originalBtnText;
+      }
+
+      if (result.conflict) {
+        alert("抱歉！您選擇的預約時段剛剛已被其他顧客預約走了。請重新選擇其他日期或時段，謝謝！");
+        const dateObj = new Date(date);
+        const dayOfWeek = dateObj.getDay();
+        generateTimeOptions(document.getElementById("booking-time"), dayOfWeek, date);
+        return;
+      }
+
+      if (result.success) {
+        bookingsList = latestBookings;
+        bookingsList.push(newBooking);
+        localStorage.setItem("jifu_piercing_bookings", JSON.stringify(bookingsList));
+        showSuccessModal(lineText);
+      } else {
+        alert("預約失敗，原因：" + (result.error || "未知錯誤"));
+      }
+    })
+    .catch(err => {
+      console.error("雲端預約失敗，嘗試降級寫入本地", err);
+      if (submitBtn) {
+        submitBtn.disabled = false;
+        submitBtn.innerText = originalBtnText;
+      }
+      alert("連線雲端資料庫失敗，請確認您的網路連線是否正常！");
+    });
+  } else {
+    // 降級使用純單機模式 LocalStorage
+    const isDuplicate = latestBookings.some(b => b.date === date && b.time === time && b.status !== "已取消");
+    if (isDuplicate) {
+      alert("抱歉！您選擇的預約時段剛剛已被其他顧客預約走了。請重新選擇其他日期或時段，謝謝！");
+      const dateObj = new Date(date);
+      const dayOfWeek = dateObj.getDay();
+      generateTimeOptions(document.getElementById("booking-time"), dayOfWeek, date);
+      return;
+    }
+
+    bookingsList = latestBookings;
+    bookingsList.push(newBooking);
+    localStorage.setItem("jifu_piercing_bookings", JSON.stringify(bookingsList));
+    showSuccessModal(lineText);
+  }
+}
+
+// 顯示預約成功對話框並重設表單
+function showSuccessModal(lineText) {
   document.getElementById("line-text-area").textContent = lineText;
   document.getElementById("success-modal").classList.add("active");
-  
-  // 重設表單
   document.getElementById("piercing-form").reset();
   document.getElementById("booking-time").disabled = true;
   document.getElementById("booking-time").innerHTML = '<option value="">請先選擇日期</option>';
@@ -468,6 +529,7 @@ function addLeaveDate() {
   
   sysConfig.leaveDates.push(selectedDate);
   localStorage.setItem("jifu_piercing_config", JSON.stringify(sysConfig));
+  saveConfigToCloud();
   
   alert(`成功加入休假日期：${selectedDate}！`);
   dateInput.value = "";
@@ -483,6 +545,7 @@ function deleteLeaveDate(dateStr) {
     sysConfig.leaveDates = sysConfig.leaveDates || [];
     sysConfig.leaveDates = sysConfig.leaveDates.filter(d => d !== dateStr);
     localStorage.setItem("jifu_piercing_config", JSON.stringify(sysConfig));
+    saveConfigToCloud();
     
     loadLeaveDatesList();
     initClientPage();
@@ -591,6 +654,7 @@ function saveSpecialDateSlots() {
   }
   
   localStorage.setItem("jifu_piercing_config", JSON.stringify(sysConfig));
+  saveConfigToCloud();
   alert(`成功儲存 ${dateStr} 的個別預約時段設定！顧客在前台將只能選取您有勾選的時段。`);
   
   // 隱藏區塊並重設輸入
@@ -638,6 +702,7 @@ function deleteSpecialDateConfig(dateStr) {
     sysConfig.specialDisabledSlots = sysConfig.specialDisabledSlots || {};
     delete sysConfig.specialDisabledSlots[dateStr];
     localStorage.setItem("jifu_piercing_config", JSON.stringify(sysConfig));
+    saveConfigToCloud();
     
     loadSpecialDatesList();
     initClientPage();
@@ -680,6 +745,7 @@ function saveTimeSettings() {
   // 更新系統設定並儲存
   sysConfig.days = newDaysConfig;
   localStorage.setItem("jifu_piercing_config", JSON.stringify(sysConfig));
+  saveConfigToCloud();
   alert("每日自訂預約時間設定已成功儲存！客人在前台將會看到您專屬設定的時間段。");
   
   // 重新初始化前台日期與時段控制
@@ -691,6 +757,7 @@ function resetTimeSettingsDefault() {
   if (confirm("確認要將預約時間設定回復至系統預設值（週一至週六 11:30 - 20:30 開放，週日休息）嗎？")) {
     sysConfig = JSON.parse(JSON.stringify(DEFAULT_CONFIG));
     localStorage.setItem("jifu_piercing_config", JSON.stringify(sysConfig));
+    saveConfigToCloud();
     loadTimeConfigForm();
     initClientPage();
     alert("已成功回復系統預設設定！");
@@ -770,7 +837,7 @@ function handleManualSubmit(e) {
     createTime: new Date().toLocaleString("zh-TW")
   };
   
-  // 在手動新增前，再次即時從 LocalStorage 檢查時段是否已被佔用，防止重複
+  // 讀取最新本地預約名單備份
   let latestBookings = [];
   try {
     const localStr = localStorage.getItem("jifu_piercing_bookings");
@@ -780,23 +847,79 @@ function handleManualSubmit(e) {
   } catch (e) {
     latestBookings = bookingsList;
   }
-  const isDuplicate = latestBookings.some(b => b.date === date && b.time === time && b.status !== "已取消");
-  if (isDuplicate) {
-    alert("建立預約失敗！該日期的此時段已被其他預約佔用。請重新選擇其他時段。");
-    const dateObj = new Date(date);
-    const dayOfWeek = dateObj.getDay();
-    generateTimeOptions(document.getElementById("manual-time"), dayOfWeek, date);
-    return;
-  }
-
-  bookingsList = latestBookings; // 更新記憶體中的名單
-  bookingsList.push(newBooking);
-  localStorage.setItem("jifu_piercing_bookings", JSON.stringify(bookingsList));
   
+  // 檢查是否已設定雲端同步
+  if (sysConfig.gasUrl) {
+    const submitBtn = document.querySelector("#admin-manual-form button[type='submit']");
+    const originalBtnText = submitBtn ? submitBtn.innerText : "確認手動新增";
+    if (submitBtn) {
+      submitBtn.disabled = true;
+      submitBtn.innerText = "⚡ 正在連線雲端資料庫...";
+    }
+
+    fetch(sysConfig.gasUrl, {
+      method: "POST",
+      headers: { "Content-Type": "text/plain" },
+      body: JSON.stringify({
+        action: "addBooking",
+        data: newBooking
+      })
+    })
+    .then(res => res.json())
+    .then(result => {
+      if (submitBtn) {
+        submitBtn.disabled = false;
+        submitBtn.innerText = originalBtnText;
+      }
+
+      if (result.conflict) {
+        alert("建立預約失敗！該日期的此時段已被其他預約佔用。請重新選擇其他時段。");
+        const dateObj = new Date(date);
+        const dayOfWeek = dateObj.getDay();
+        generateTimeOptions(document.getElementById("manual-time"), dayOfWeek, date);
+        return;
+      }
+
+      if (result.success) {
+        bookingsList = latestBookings;
+        bookingsList.push(newBooking);
+        localStorage.setItem("jifu_piercing_bookings", JSON.stringify(bookingsList));
+        showManualSuccess();
+      } else {
+        alert("手動建立預約失敗，原因：" + (result.error || "未知錯誤"));
+      }
+    })
+    .catch(err => {
+      console.error("雲端手動預約失敗", err);
+      if (submitBtn) {
+        submitBtn.disabled = false;
+        submitBtn.innerText = originalBtnText;
+      }
+      alert("連線雲端資料庫失敗，請確認您的網路連線是否正常！");
+    });
+  } else {
+    // 降級使用純單機模式 LocalStorage
+    const isDuplicate = latestBookings.some(b => b.date === date && b.time === time && b.status !== "已取消");
+    if (isDuplicate) {
+      alert("建立預約失敗！該日期的此時段已被其他預約佔用。請重新選擇其他時段。");
+      const dateObj = new Date(date);
+      const dayOfWeek = dateObj.getDay();
+      generateTimeOptions(document.getElementById("manual-time"), dayOfWeek, date);
+      return;
+    }
+
+    bookingsList = latestBookings;
+    bookingsList.push(newBooking);
+    localStorage.setItem("jifu_piercing_bookings", JSON.stringify(bookingsList));
+    showManualSuccess();
+  }
+}
+
+// 手動新增預約成功的輔助函數
+function showManualSuccess() {
   alert("成功為顧客手動建立一筆已確認預約！");
   document.getElementById("admin-manual-form").reset();
   document.getElementById("manual-time").innerHTML = '<option value="">請先選擇日期</option>';
-  
   renderBookingList();
 }
 
@@ -876,6 +999,7 @@ function renderBookingList() {
 }
 
 // 變更預約狀態
+// 變更預約狀態
 function changeBookingStatus(id, newStatus) {
   bookingsList = bookingsList.map(b => {
     if (b.id === id) {
@@ -884,6 +1008,20 @@ function changeBookingStatus(id, newStatus) {
     return b;
   });
   localStorage.setItem("jifu_piercing_bookings", JSON.stringify(bookingsList));
+  
+  if (sysConfig.gasUrl) {
+    fetch(sysConfig.gasUrl, {
+      method: "POST",
+      headers: { "Content-Type": "text/plain" },
+      body: JSON.stringify({ action: "updateBookingStatus", id, status: newStatus })
+    })
+    .then(res => res.json())
+    .then(res => {
+      if (!res.success) console.error("雲端更新狀態失敗", res.error);
+    })
+    .catch(err => console.error("雲端連線更新狀態失敗", err));
+  }
+  
   renderBookingList();
 }
 
@@ -896,6 +1034,19 @@ function updateBookingNote(id, newNote) {
     return b;
   });
   localStorage.setItem("jifu_piercing_bookings", JSON.stringify(bookingsList));
+  
+  if (sysConfig.gasUrl) {
+    fetch(sysConfig.gasUrl, {
+      method: "POST",
+      headers: { "Content-Type": "text/plain" },
+      body: JSON.stringify({ action: "updateBookingNote", id, note: newNote })
+    })
+    .then(res => res.json())
+    .then(res => {
+      if (!res.success) console.error("雲端更新備註失敗", res.error);
+    })
+    .catch(err => console.error("雲端連線更新備註失敗", err));
+  }
 }
 
 // 刪除預約
@@ -903,6 +1054,20 @@ function deleteBooking(id) {
   if (confirm("確定要永久刪除此筆預約資料嗎？此操作無法還原。")) {
     bookingsList = bookingsList.filter(b => b.id !== id);
     localStorage.setItem("jifu_piercing_bookings", JSON.stringify(bookingsList));
+    
+    if (sysConfig.gasUrl) {
+      fetch(sysConfig.gasUrl, {
+        method: "POST",
+        headers: { "Content-Type": "text/plain" },
+        body: JSON.stringify({ action: "deleteBooking", id })
+      })
+      .then(res => res.json())
+      .then(res => {
+        if (!res.success) console.error("雲端刪除失敗", res.error);
+      })
+      .catch(err => console.error("雲端連線刪除失敗", err));
+    }
+    
     renderBookingList();
   }
 }
@@ -913,4 +1078,204 @@ function clearFilters() {
   document.getElementById("filter-date").value = "";
   document.getElementById("filter-status").value = "";
   renderBookingList();
+}
+
+// --- Google 試算表雲端同步輔助函數 ---
+
+// 儲存設定至雲端 (Apps Script - Config 工作表)
+function saveConfigToCloud() {
+  if (sysConfig.gasUrl) {
+    fetch(sysConfig.gasUrl, {
+      method: "POST",
+      headers: { "Content-Type": "text/plain" },
+      body: JSON.stringify({ action: "saveConfig", data: sysConfig })
+    })
+    .then(res => res.json())
+    .then(res => {
+      if (!res.success) console.error("雲端備份時間設定失敗", res.error);
+    })
+    .catch(err => console.error("雲端連線儲存時間設定失敗", err));
+  }
+}
+
+// 與雲端試算表非同步資料同步 (雙模設計)
+function syncWithCloud() {
+  const statusBadge = document.getElementById("cloud-sync-status");
+  const gasUrlInput = document.getElementById("config-gas-url");
+  
+  if (gasUrlInput) {
+    gasUrlInput.value = sysConfig.gasUrl || "";
+  }
+  
+  if (!sysConfig.gasUrl) {
+    if (statusBadge) {
+      statusBadge.innerText = "單機模式 (未同步雲端)";
+      statusBadge.style.cssText = "background: rgba(255, 69, 58, 0.15); color: #FF453A; border: 1px solid #FF453A; font-size: 0.8rem; padding: 4px 12px; border-radius: 50px;";
+    }
+    document.getElementById("sync-local-btn-area").style.display = "none";
+    return;
+  }
+  
+  if (statusBadge) {
+    statusBadge.innerText = "🔄 正在連線雲端試算表...";
+    statusBadge.style.cssText = "background: rgba(255, 149, 0, 0.15); color: #FF9500; border: 1px solid #FF9500; font-size: 0.8rem; padding: 4px 12px; border-radius: 50px;";
+  }
+  
+  // 1. 同步獲取雲端預約名單
+  fetch(sysConfig.gasUrl + "?action=getBookings")
+  .then(res => res.json())
+  .then(cloudBookings => {
+    if (Array.isArray(cloudBookings)) {
+      // 成功獲取，更新本地備份
+      bookingsList = cloudBookings;
+      localStorage.setItem("jifu_piercing_bookings", JSON.stringify(bookingsList));
+      
+      // 更新狀態徽章為連線成功
+      if (statusBadge) {
+        statusBadge.innerText = "🟢 連線中 (雲端同步)";
+        statusBadge.style.cssText = "background: rgba(52, 199, 89, 0.15); color: #34C759; border: 1px solid #34C759; font-size: 0.8rem; padding: 4px 12px; border-radius: 50px;";
+      }
+      
+      // 檢查是否需要同步本地舊資料的提示
+      checkLocalDataDiff(cloudBookings);
+      
+      // 重新渲染後台名單
+      renderBookingList();
+    }
+  })
+  .catch(err => {
+    console.error("同步預約名單失敗，降級使用 LocalStorage", err);
+    if (statusBadge) {
+      statusBadge.innerText = "⚠️ 連線失敗 (降級單機運作)";
+      statusBadge.style.cssText = "background: rgba(255, 149, 0, 0.15); color: #FF9500; border: 1px solid #FF9500; font-size: 0.8rem; padding: 4px 12px; border-radius: 50px;";
+    }
+  });
+
+  // 2. 同步獲取雲端營業配置
+  fetch(sysConfig.gasUrl + "?action=getConfig")
+  .then(res => res.json())
+  .then(res => {
+    if (res.configStr) {
+      const cloudConfig = JSON.parse(res.configStr);
+      // 如果雲端有較新的配置，更新本地，但維持本地的 gasUrl
+      if (cloudConfig && cloudConfig.days) {
+        const currentGasUrl = sysConfig.gasUrl;
+        sysConfig = cloudConfig;
+        sysConfig.gasUrl = currentGasUrl;
+        localStorage.setItem("jifu_piercing_config", JSON.stringify(sysConfig));
+        
+        // 重新填入後台設定表單
+        for (let day in sysConfig.days) {
+          const dayConfig = sysConfig.days[day];
+          const row = document.querySelector(`#config-days-tbody tr[data-day="${day}"]`);
+          if (row) {
+            row.querySelector(".cfg-open").checked = dayConfig.open;
+            row.querySelector(".cfg-start").value = dayConfig.start;
+            row.querySelector(".cfg-end").value = dayConfig.end;
+            row.querySelector(".cfg-interval").value = dayConfig.interval;
+          }
+        }
+        loadLeaveDatesList();
+        loadSpecialDatesList();
+      }
+    }
+  })
+  .catch(err => console.error("同步設定失敗，降級使用 LocalStorage 營業配置", err));
+}
+
+// 儲存 GAS 網址 (在後台點擊儲存按鈕)
+function saveGasUrl() {
+  const urlInput = document.getElementById("config-gas-url");
+  const url = urlInput.value.trim();
+  
+  if (url && !url.startsWith("https://script.google.com/macros/")) {
+    alert("請輸入合法的 Google Apps Script 網頁應用程式網址！\n應以 https://script.google.com/ 開頭。");
+    return;
+  }
+  
+  sysConfig.gasUrl = url;
+  localStorage.setItem("jifu_piercing_config", JSON.stringify(sysConfig));
+  
+  alert("Google 試算表連線網址儲存成功！即將開始測試連線並進行雲端同步...");
+  syncWithCloud();
+}
+
+// 檢查本地 LocalStorage 裡是否有尚未上傳到雲端試算表的舊預約
+function checkLocalDataDiff(cloudBookings) {
+  const localBookings = JSON.parse(localStorage.getItem("jifu_piercing_bookings")) || [];
+  const cloudIds = cloudBookings.map(b => b.id.toString());
+  
+  // 找出本地有、但雲端沒有的預約 (即需要上傳同步的舊資料)
+  const diffBookings = localBookings.filter(b => !cloudIds.includes(b.id.toString()));
+  
+  const diffArea = document.getElementById("sync-local-btn-area");
+  const countSpan = document.getElementById("local-bookings-count");
+  
+  if (diffBookings.length > 0 && diffArea && countSpan) {
+    countSpan.innerText = diffBookings.length;
+    diffArea.style.display = "block";
+  } else if (diffArea) {
+    diffArea.style.display = "none";
+  }
+}
+
+// 將本地舊資料一鍵批次同步上傳至雲端試算表
+function syncLocalBookingsToCloud() {
+  const localBookings = JSON.parse(localStorage.getItem("jifu_piercing_bookings")) || [];
+  
+  // 再次取得雲端 ID
+  fetch(sysConfig.gasUrl + "?action=getBookings")
+  .then(res => res.json())
+  .then(cloudBookings => {
+    if (Array.isArray(cloudBookings)) {
+      const cloudIds = cloudBookings.map(b => b.id.toString());
+      const diffBookings = localBookings.filter(b => !cloudIds.includes(b.id.toString()));
+      
+      if (diffBookings.length === 0) {
+        alert("資料已是最新，無需同步！");
+        document.getElementById("sync-local-btn-area").style.display = "none";
+        return;
+      }
+      
+      let successCount = 0;
+      let conflictCount = 0;
+      let errorCount = 0;
+      
+      // 遞迴上傳防止多工併發錯誤
+      function uploadNext(index) {
+        if (index >= diffBookings.length) {
+          alert(`同步完成！\n✅ 成功上傳：${successCount} 筆\n⚠️ 重複排除：${conflictCount} 筆\n❌ 連線失敗：${errorCount} 筆`);
+          // 重新同步抓取雲端，更新狀態
+          syncWithCloud();
+          return;
+        }
+        
+        const booking = diffBookings[index];
+        fetch(sysConfig.gasUrl, {
+          method: "POST",
+          headers: { "Content-Type": "text/plain" },
+          body: JSON.stringify({ action: "addBooking", data: booking })
+        })
+        .then(res => res.json())
+        .then(res => {
+          if (res.success) successCount++;
+          else if (res.conflict) conflictCount++;
+          else errorCount++;
+          uploadNext(index + 1);
+        })
+        .catch(err => {
+          console.error("同步上傳單筆預約失敗", err);
+          errorCount++;
+          uploadNext(index + 1);
+        });
+      }
+      
+      alert(`準備開始上傳同步 ${diffBookings.length} 筆歷史資料，這可能需要幾秒鐘，請勿關閉網頁...`);
+      uploadNext(0);
+    }
+  })
+  .catch(err => {
+    console.error("同步取得雲端名單失敗", err);
+    alert("同步失敗，請確認您的雲端試算表連線狀態正常！");
+  });
 }

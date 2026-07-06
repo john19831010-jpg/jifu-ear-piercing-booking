@@ -415,6 +415,33 @@
       <div class="tab-content" id="tab-settings">
         <div class="admin-grid" style="grid-template-columns: 1fr;">
           <div class="glass-panel time-config-card">
+            <!-- Google 試算表雲端同步設定 -->
+            <div style="background: rgba(0, 185, 0, 0.05); border: 1px solid #00B900; border-radius: 8px; padding: 20px; margin-bottom: 30px;">
+              <h3 style="margin-bottom: 8px; color: #00B900; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px; border-left: none; padding-left: 0;">
+                <span>🔗 Google 試算表雲端同步設定</span>
+                <span id="cloud-sync-status" class="status-badge" style="background: rgba(255, 69, 58, 0.15); color: #FF453A; border: 1px solid #FF453A; font-size: 0.8rem; padding: 4px 12px; border-radius: 50px;">單機模式 (未同步雲端)</span>
+              </h3>
+              <p style="color: var(--text-secondary); font-size: 0.85rem; margin-bottom: 16px; line-height: 1.5;">
+                設定後，客人在各自手機預約的資料會<b>秒同步到您的 Google 雲端試算表</b>，您的手機和電腦後台也將會自動同步最新時段，100% 防止重複預約！
+              </p>
+              
+              <div style="display: flex; gap: 12px; align-items: center; margin-bottom: 16px; flex-wrap: wrap;">
+                <div style="flex: 1; min-width: 280px;">
+                  <span style="font-size: 0.85rem; color: var(--text-secondary); display: block; margin-bottom: 6px;">試算表 Apps Script 網頁應用程式網址：</span>
+                  <input type="url" id="config-gas-url" placeholder="請貼上部署後產生的 https://script.google.com/macros/s/... 網址" style="width: 100%; padding: 10px 16px; background: rgba(0,0,0,0.3); border: 1px solid var(--gold-border); color: white; border-radius: var(--radius-sm);">
+                </div>
+                <button class="gold-btn" style="padding: 10px 24px; font-size: 0.9rem; align-self: flex-end;" onclick="saveGasUrl()">💾 儲存並連線雲端</button>
+              </div>
+
+              <!-- 本地資料同步按鈕，僅在已連線時才顯示 -->
+              <div id="sync-local-btn-area" style="display: none; border-top: 1px dashed rgba(0, 185, 0, 0.2); padding-top: 12px; margin-top: 12px;">
+                <p style="color: var(--text-muted); font-size: 0.8rem; margin-bottom: 8px;">
+                  💡 您目前有 <span id="local-bookings-count" style="font-weight: bold; color: var(--gold-light);">0</span> 筆舊的預約資料僅存放在此電腦中。
+                </p>
+                <button class="gold-btn" style="background: linear-gradient(135deg, #00B900, #009E00); color: white; border: none; font-size: 0.8rem; padding: 8px 16px; border-radius: var(--radius-sm);" onclick="syncLocalBookingsToCloud()">📤 將此電腦的預約同步上傳至雲端</button>
+              </div>
+            </div>
+
             <h3 style="margin-bottom: 12px; border-left: 3px solid var(--gold-primary); padding-left: 12px;">⚙️ 週一至週日獨立時間段設定 (瀏覽器自動記憶)</h3>
             <p style="color: var(--text-secondary); font-size: 0.9rem; margin-bottom: 24px;">
               在此處分別設定每一天（週一至週日）是否開放預約，以及當天可以被預約的時間範圍。儲存後前台即時更新。
