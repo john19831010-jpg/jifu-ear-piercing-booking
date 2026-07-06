@@ -1,5 +1,5 @@
 // --- 系統初始化與變數定義 ---
-const CONFIG_VERSION = "1.0.5";
+const CONFIG_VERSION = "1.0.5"; 
 const DEFAULT_CONFIG = {
   configVersion: CONFIG_VERSION,
   gasUrl: "", // Google Apps Script 網頁應用程式網址，用於同步 Google 試算表
