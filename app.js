@@ -283,25 +283,28 @@ function handleFormSubmit(e) {
   
   // 計算費用
   let materialPrice = 0;
-  let materialText = "";
+  let materialText = material; // 直接以選取的完整規格文字寫入試算表
   
   if (material.includes("500")) {
     materialPrice = 500;
-    materialText = "醫學鋼 基礎款 ($500)";
-  } else if (material.includes("800")) {
+  } else if (material.includes("800") && material.includes("一對")) {
     materialPrice = 800;
-    materialText = "醫學鋼 進階款 ($800)";
-  } else if (material.includes("1200")) {
+  } else if (material.includes("450") || (material.includes("800") && material.includes("單耳"))) {
+    materialPrice = 450;
+  } else if (material.includes("1200") && material.includes("一對")) {
     materialPrice = 1200;
-    materialText = "純鈦金屬 抗敏款 ($1200)";
-  } else if (material.includes("2400")) {
+  } else if (material.includes("650") || (material.includes("1200") && material.includes("單耳"))) {
+    materialPrice = 650;
+  } else if (material.includes("2400") && material.includes("一對")) {
     materialPrice = 2400;
-    materialText = "14K金 奢華款 ($2400)";
-  } else if (material.includes("2800")) {
+  } else if (material.includes("1250") || (material.includes("2400") && material.includes("單耳"))) {
+    materialPrice = 1250;
+  } else if (material.includes("2800") && material.includes("一對")) {
     materialPrice = 2800;
-    materialText = "14K金 奢華款 ($2800)";
+  } else if (material.includes("1450") || (material.includes("2800") && material.includes("單耳"))) {
+    materialPrice = 1450;
   } else {
-    materialPrice = 0; // 現場挑選
+    materialPrice = 0;
     materialText = "現場挑選樣式 (價格現場估算)";
   }
   
@@ -874,11 +877,25 @@ function handleManualSubmit(e) {
   
   // 計算費用
   let materialPrice = 0;
-  if (material.includes("500")) materialPrice = 500;
-  else if (material.includes("800")) materialPrice = 800;
-  else if (material.includes("1200")) materialPrice = 1200;
-  else if (material.includes("2400")) materialPrice = 2400;
-  else if (material.includes("2800")) materialPrice = 2800;
+  if (material.includes("500")) {
+    materialPrice = 500;
+  } else if (material.includes("800") && material.includes("一對")) {
+    materialPrice = 800;
+  } else if (material.includes("450") || (material.includes("800") && material.includes("單耳"))) {
+    materialPrice = 450;
+  } else if (material.includes("1200") && material.includes("一對")) {
+    materialPrice = 1200;
+  } else if (material.includes("650") || (material.includes("1200") && material.includes("單耳"))) {
+    materialPrice = 650;
+  } else if (material.includes("2400") && material.includes("一對")) {
+    materialPrice = 2400;
+  } else if (material.includes("1250") || (material.includes("2400") && material.includes("單耳"))) {
+    materialPrice = 1250;
+  } else if (material.includes("2800") && material.includes("一對")) {
+    materialPrice = 2800;
+  } else if (material.includes("1450") || (material.includes("2800") && material.includes("單耳"))) {
+    materialPrice = 1450;
+  }
   
   const potionPrice = addPotion ? 80 : 0;
   const totalPrice = materialPrice + potionPrice;
