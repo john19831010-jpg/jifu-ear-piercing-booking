@@ -285,23 +285,33 @@ function handleFormSubmit(e) {
   let materialPrice = 0;
   let materialText = material; // 直接以選取的完整規格文字寫入試算表
   
-  if (material.includes("500")) {
+  if (material.includes("1200") && (material.includes("一對") || material.includes("醫學鋼"))) {
+    materialPrice = 1200;
+  } else if (material.includes("600") || (material.includes("單耳") && material.includes("醫學鋼"))) {
+    materialPrice = 600;
+  } else if (material.includes("1800") && (material.includes("一對") || material.includes("純鈦"))) {
+    materialPrice = 1800;
+  } else if (material.includes("900") || (material.includes("單耳") && material.includes("純鈦"))) {
+    materialPrice = 900;
+  } else if (material.includes("3600") || (material.includes("一對") && material.includes("14K"))) {
+    materialPrice = 3600;
+  } else if (material.includes("1800") && material.includes("14K")) {
+    materialPrice = 1800;
+  } else if (material.includes("500")) {
     materialPrice = 500;
   } else if (material.includes("800") && material.includes("一對")) {
     materialPrice = 800;
-  } else if (material.includes("450") || (material.includes("800") && material.includes("單耳"))) {
+  } else if (material.includes("450")) {
     materialPrice = 450;
-  } else if (material.includes("1200") && material.includes("一對")) {
-    materialPrice = 1200;
-  } else if (material.includes("650") || (material.includes("1200") && material.includes("單耳"))) {
+  } else if (material.includes("650")) {
     materialPrice = 650;
   } else if (material.includes("2400") && material.includes("一對")) {
     materialPrice = 2400;
-  } else if (material.includes("1250") || (material.includes("2400") && material.includes("單耳"))) {
+  } else if (material.includes("1250")) {
     materialPrice = 1250;
   } else if (material.includes("2800") && material.includes("一對")) {
     materialPrice = 2800;
-  } else if (material.includes("1450") || (material.includes("2800") && material.includes("單耳"))) {
+  } else if (material.includes("1450")) {
     materialPrice = 1450;
   } else {
     materialPrice = 0;
@@ -877,23 +887,33 @@ function handleManualSubmit(e) {
   
   // 計算費用
   let materialPrice = 0;
-  if (material.includes("500")) {
+  if (material.includes("1200") && (material.includes("一對") || material.includes("醫學鋼"))) {
+    materialPrice = 1200;
+  } else if (material.includes("600") || (material.includes("單耳") && material.includes("醫學鋼"))) {
+    materialPrice = 600;
+  } else if (material.includes("1800") && (material.includes("一對") || material.includes("純鈦"))) {
+    materialPrice = 1800;
+  } else if (material.includes("900") || (material.includes("單耳") && material.includes("純鈦"))) {
+    materialPrice = 900;
+  } else if (material.includes("3600") || (material.includes("一對") && material.includes("14K"))) {
+    materialPrice = 3600;
+  } else if (material.includes("1800") && material.includes("14K")) {
+    materialPrice = 1800;
+  } else if (material.includes("500")) {
     materialPrice = 500;
   } else if (material.includes("800") && material.includes("一對")) {
     materialPrice = 800;
-  } else if (material.includes("450") || (material.includes("800") && material.includes("單耳"))) {
+  } else if (material.includes("450")) {
     materialPrice = 450;
-  } else if (material.includes("1200") && material.includes("一對")) {
-    materialPrice = 1200;
-  } else if (material.includes("650") || (material.includes("1200") && material.includes("單耳"))) {
+  } else if (material.includes("650")) {
     materialPrice = 650;
   } else if (material.includes("2400") && material.includes("一對")) {
     materialPrice = 2400;
-  } else if (material.includes("1250") || (material.includes("2400") && material.includes("單耳"))) {
+  } else if (material.includes("1250")) {
     materialPrice = 1250;
   } else if (material.includes("2800") && material.includes("一對")) {
     materialPrice = 2800;
-  } else if (material.includes("1450") || (material.includes("2800") && material.includes("單耳"))) {
+  } else if (material.includes("1450")) {
     materialPrice = 1450;
   }
   
