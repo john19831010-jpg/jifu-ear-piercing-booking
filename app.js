@@ -1,5 +1,5 @@
 // --- 系統初始化與變數定義 ---
-const CONFIG_VERSION = "1.0.5"; 
+const CONFIG_VERSION = "1.0.6"; 
 const DEFAULT_GAS_URL = "https://script.google.com/macros/s/AKfycbwUHhZtqKp9PCrkR-Qdt_D2p8lDUny7PU8IM7FIgDzQ8CYvEH_gW01trNVAemRU5zEjZw/exec";
 
 // 判定 Apps Script 網址是否合法 (避免複製時漏掉尾段字元)
@@ -15,9 +15,9 @@ const DEFAULT_CONFIG = {
     2: { open: true, start: "11:30", end: "20:30", interval: 60 },  // 週二
     3: { open: true, start: "11:30", end: "20:30", interval: 60 },  // 週三
     4: { open: true, start: "11:30", end: "20:30", interval: 60 },  // 週四
-    5: { open: true, start: "12:00", end: "16:30", interval: 30 },  // 週五 (12:00 - 16:30)
-    6: { open: true, start: "14:00", end: "20:30", interval: 30 },  // 週六 (14:00 - 17:30 + 20:30)
-    0: { open: true, start: "14:00", end: "20:30", interval: 30 }   // 週日 (14:00 - 17:30 + 20:30)
+    5: { open: true, start: "12:00", end: "20:30", interval: 30 },  // 週五 (12:00 - 16:30, 20:30)
+    6: { open: true, start: "14:00", end: "20:30", interval: 30 },  // 週六 (14:00 - 17:30, 20:30)
+    0: { open: true, start: "14:00", end: "20:30", interval: 30 }   // 週日 (14:00 - 17:30, 20:30)
   },
   leaveDates: [], // 臨時請假/店休日期黑名單
   specialDisabledSlots: {} // 特定日期個別關閉的時段，格式如 {"2026-07-06": ["13:30", "14:30"]}
@@ -233,11 +233,15 @@ function generateTimeOptions(selectElement, dayOfWeek, selectedDateStr = "") {
     const m = currentMin % 60;
     const timeStr = `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}`;
     
-    // 檢查是否為週六、日特定休息時間 (下午五點半 17:30 之後 到 晚上八點半 20:30 之前)
+    // 檢查固定休息時間：
+    // 週五：下午四點半 (16:30) 之後 到 晚上八點半 (20:30) 之前無法預約
+    const isFridayBreak = (dayOfWeek === 5) && (currentMin > (16 * 60 + 30) && currentMin < (20 * 60 + 30));
+    // 週六、週日：下午五點半 (17:30) 之後 到 晚上八點半 (20:30) 之前無法預約
     const isWeekendBreak = (dayOfWeek === 6 || dayOfWeek === 0) && (currentMin > (17 * 60 + 30) && currentMin < (20 * 60 + 30));
+    const isRestPeriod = isFridayBreak || isWeekendBreak;
     
-    // 只有當該時段沒有被關閉、沒有被預約，且不屬於週六日中間休息時間時，才提供給客人選取
-    if (!blockedSlots.includes(timeStr) && !bookedSlots.includes(timeStr) && !isWeekendBreak) {
+    // 只有當該時段沒有被關閉、沒有被預約，且不屬於休息時段時，才提供給客人選取
+    if (!blockedSlots.includes(timeStr) && !bookedSlots.includes(timeStr) && !isRestPeriod) {
       const option = document.createElement("option");
       option.value = timeStr;
       option.textContent = timeStr;
@@ -672,10 +676,14 @@ function loadSpecialDateSlots() {
     const m = currentMin % 60;
     const timeStr = `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}`;
     
-    // 檢查是否為週六、日特定休息時間 (下午五點半 17:30 之後 到 晚上八點半 20:30 之前)
+    // 檢查固定休息時間：
+    // 週五：下午四點半 (16:30) 之後 到 晚上八點半 (20:30) 之前無法預約
+    const isFridayBreak = (dayOfWeek === 5) && (currentMin > (16 * 60 + 30) && currentMin < (20 * 60 + 30));
+    // 週六、週日：下午五點半 (17:30) 之後 到 晚上八點半 (20:30) 之前無法預約
     const isWeekendBreak = (dayOfWeek === 6 || dayOfWeek === 0) && (currentMin > (17 * 60 + 30) && currentMin < (20 * 60 + 30));
+    const isRestPeriod = isFridayBreak || isWeekendBreak;
     
-    if (!isWeekendBreak) {
+    if (!isRestPeriod) {
       // 如果不在黑名單中，代表是勾選（開放）的
       const isChecked = !blockedSlots.includes(timeStr);
       
