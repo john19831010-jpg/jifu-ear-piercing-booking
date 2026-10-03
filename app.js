@@ -367,7 +367,7 @@ function handleFormSubmit(e) {
 - 特殊備註：${note}
 - 預估金額：${newBooking.totalPrice}
 
-再麻煩老闆確認，謝謝您！`;
+（※ 備註：若遇到穿耳洞師傅不行的時間，再麻煩老闆與我聯絡協調時段，謝謝您！）`;
 
   // 檢查是否已設定雲端同步
   if (sysConfig.gasUrl) {
