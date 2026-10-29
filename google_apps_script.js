@@ -2,12 +2,26 @@
 // 適用於「吉富珠寶銀樓穿耳預約系統」的雲端試算表資料庫轉接器
 // 請複製整份檔案，並貼入您 Google 試算表的「延伸模組」->「Apps Script」中。
 
+// 後台管理密碼（集中於伺服器端驗證，不在前端暴露）
+var ADMIN_PASSWORD = "jifu888";
+
 function doGet(e) {
   var action = e.parameter.action;
   var callback = e.parameter.callback; // 獲取 JSONP 回調函數名
   
   if (action === "getBookings") {
-    return getBookings(callback);
+    // 支援以 adminPass 驗證；若提供正確密碼則回傳完整名單，否則只回傳脫敏後的時段資料
+    var adminPass = e.parameter.adminPass;
+    if (adminPass === ADMIN_PASSWORD) {
+      return getFullBookings(callback);
+    }
+    return getPublicBookings(callback);
+  } else if (action === "verifyAdmin") {
+    var pass = e.parameter.password;
+    if (pass === ADMIN_PASSWORD) {
+      return createResponse({ success: true }, callback);
+    }
+    return createResponse({ success: false, error: "密碼錯誤" }, callback);
   } else if (action === "getConfig") {
     return getConfig(callback);
   } else if (action === "addBooking") {
@@ -43,7 +57,12 @@ function doPost(e) {
   
   var action = payload.action;
   
-  if (action === "addBooking") {
+  if (action === "verifyAdmin") {
+    if (payload.password === ADMIN_PASSWORD) {
+      return createResponse({ success: true }, null);
+    }
+    return createResponse({ success: false, error: "密碼錯誤" }, null);
+  } else if (action === "addBooking") {
     return addBooking(payload.data, null);
   } else if (action === "updateBookingStatus") {
     return updateBookingStatus(payload.id, payload.status, null);
@@ -58,8 +77,39 @@ function doPost(e) {
   return createResponse({ error: "Invalid POST action" }, null);
 }
 
-// 獲取所有預約
-function getBookings(callback) {
+// 顧客前台專用：只回傳時段與狀態（徹底過濾姓名、電話、LINE ID、備註等個人隱私）
+function getPublicBookings(callback) {
+  var sheet = getOrCreateSheet("Bookings");
+  var lastRow = sheet.getLastRow();
+  var slots = [];
+  
+  if (lastRow > 1) {
+    var headers = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0];
+    var data = sheet.getRange(2, 1, lastRow - 1, sheet.getLastColumn()).getValues();
+    
+    var dateIdx = headers.indexOf("date");
+    var timeIdx = headers.indexOf("time");
+    var statusIdx = headers.indexOf("status");
+    
+    // 若標頭未找到，退回標準欄位索引 (date:4, time:5, status:11)
+    if (dateIdx === -1) dateIdx = 4;
+    if (timeIdx === -1) timeIdx = 5;
+    if (statusIdx === -1) statusIdx = 11;
+    
+    for (var i = 0; i < data.length; i++) {
+      var row = data[i];
+      slots.push({
+        date: row[dateIdx],
+        time: row[timeIdx],
+        status: row[statusIdx] || "待確認"
+      });
+    }
+  }
+  return createResponse(slots, callback);
+}
+
+// 後台管理專用：回傳完整預約資料 (需密碼認證)
+function getFullBookings(callback) {
   var sheet = getOrCreateSheet("Bookings");
   var lastRow = sheet.getLastRow();
   var bookings = [];
@@ -78,6 +128,11 @@ function getBookings(callback) {
     }
   }
   return createResponse(bookings, callback);
+}
+
+// 兼容舊版 getBookings 接口（預設使用公開脫敏版保護個資）
+function getBookings(callback) {
+  return getPublicBookings(callback);
 }
 
 // 新增預約 (含雲端衝突防護)

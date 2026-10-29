@@ -486,22 +486,80 @@ function hideAdminSection() {
 }
 
 function handleAdminLogin() {
-  const password = document.getElementById("admin-pass").value;
-  // 預設店用密碼：jifu888
-  if (password === "jifu888") {
-    sessionStorage.setItem("jifu_admin_login", "true");
-    document.getElementById("admin-login-card").style.display = "none";
-    document.getElementById("admin-main-panel").style.display = "block";
-    document.getElementById("admin-pass").value = "";
-    renderBookingList();
-    loadTimeConfigForm();
+  const password = document.getElementById("admin-pass").value.trim();
+  if (!password) {
+    alert("請輸入管理密碼！");
+    return;
+  }
+  
+  const submitBtn = document.querySelector("#admin-login-card button.gold-btn");
+  const originalText = submitBtn ? submitBtn.innerText : "登入管理後台";
+  if (submitBtn) {
+    submitBtn.disabled = true;
+    submitBtn.innerText = "驗證密碼中...";
+  }
+
+  // 優先連線雲端 Apps Script 驗證密碼（伺服器端比對，前端不外洩密碼）
+  if (sysConfig.gasUrl) {
+    fetch(sysConfig.gasUrl + "?action=verifyAdmin&password=" + encodeURIComponent(password))
+      .then(res => res.json())
+      .then(data => {
+        if (submitBtn) {
+          submitBtn.disabled = false;
+          submitBtn.innerText = originalText;
+        }
+        if (data && data.success) {
+          sessionStorage.setItem("jifu_admin_login", "true");
+          sessionStorage.setItem("jifu_admin_token", password);
+          document.getElementById("admin-login-card").style.display = "none";
+          document.getElementById("admin-main-panel").style.display = "block";
+          document.getElementById("admin-pass").value = "";
+          syncWithCloud();
+        } else {
+          alert("密碼錯誤！請重新輸入。如果不知道密碼，請洽管理人員。");
+        }
+      })
+      .catch(err => {
+        console.error("雲端驗證失敗，啟用本機備用驗證：", err);
+        if (submitBtn) {
+          submitBtn.disabled = false;
+          submitBtn.innerText = originalText;
+        }
+        // 離線備用驗證
+        if (password === "jifu888") {
+          sessionStorage.setItem("jifu_admin_login", "true");
+          sessionStorage.setItem("jifu_admin_token", password);
+          document.getElementById("admin-login-card").style.display = "none";
+          document.getElementById("admin-main-panel").style.display = "block";
+          document.getElementById("admin-pass").value = "";
+          renderBookingList();
+          loadTimeConfigForm();
+        } else {
+          alert("密碼錯誤！請重新輸入。如果不知道密碼，請洽管理人員。");
+        }
+      });
   } else {
-    alert("密碼錯誤！請重新輸入。如果不知道密碼，請洽管理人員。");
+    if (submitBtn) {
+      submitBtn.disabled = false;
+      submitBtn.innerText = originalText;
+    }
+    if (password === "jifu888") {
+      sessionStorage.setItem("jifu_admin_login", "true");
+      sessionStorage.setItem("jifu_admin_token", password);
+      document.getElementById("admin-login-card").style.display = "none";
+      document.getElementById("admin-main-panel").style.display = "block";
+      document.getElementById("admin-pass").value = "";
+      renderBookingList();
+      loadTimeConfigForm();
+    } else {
+      alert("密碼錯誤！請重新輸入。如果不知道密碼，請洽管理人員。");
+    }
   }
 }
 
 function handleAdminLogout() {
   sessionStorage.removeItem("jifu_admin_login");
+  sessionStorage.removeItem("jifu_admin_token");
   showAdminSection();
 }
 
@@ -1201,14 +1259,24 @@ function syncWithCloud() {
     statusBadge.style.cssText = "background: rgba(255, 149, 0, 0.15); color: #FF9500; border: 1px solid #FF9500; font-size: 0.8rem; padding: 4px 12px; border-radius: 50px;";
   }
   
-  // 1. 同步獲取雲端預約名單
-  fetch(sysConfig.gasUrl + "?action=getBookings")
+  // 1. 同步獲取雲端預約名單（若已登入後台則附帶 adminPass 獲取完整名單；未登入前台時僅拉取脫敏時段防護個資）
+  const adminToken = sessionStorage.getItem("jifu_admin_token") || "";
+  const reqUrl = sysConfig.gasUrl + (adminToken ? ("?action=getBookings&adminPass=" + encodeURIComponent(adminToken)) : "?action=getBookings");
+
+  fetch(reqUrl)
   .then(res => res.json())
   .then(cloudBookings => {
     if (Array.isArray(cloudBookings)) {
-      // 成功獲取，更新本地備份
-      bookingsList = cloudBookings;
-      localStorage.setItem("jifu_piercing_bookings", JSON.stringify(bookingsList));
+      // 成功獲取
+      // 若是後台已登入（資料含完整欄位如 id/name），更新完整名單
+      const isFullData = cloudBookings.length > 0 && cloudBookings[0].name !== undefined;
+      if (isFullData || sessionStorage.getItem("jifu_admin_login") === "true") {
+        bookingsList = cloudBookings;
+        localStorage.setItem("jifu_piercing_bookings", JSON.stringify(bookingsList));
+      } else {
+        // 前台顧客端只收到脫敏時段，覆寫供防重複判斷，但不洩露任何客戶個資
+        bookingsList = cloudBookings;
+      }
       
       // 更新狀態徽章為連線成功
       if (statusBadge) {
