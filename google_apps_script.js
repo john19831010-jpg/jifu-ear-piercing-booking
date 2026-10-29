@@ -1,9 +1,12 @@
 // google_apps_script.js
 // 適用於「吉富珠寶銀樓穿耳預約系統」的雲端試算表資料庫轉接器
-// 請複製整份檔案，並貼入您 Google 試算表的「延伸模組」->「Apps Script」中。
+// 請複製整份檔案，並貼入您 Google 試算表的「擴充功能」->「Apps Script」中。
 
 // 後台管理密碼（集中於伺服器端驗證，不在前端暴露）
 var ADMIN_PASSWORD = "jifu888";
+
+// 台北時區常數，確保時區解析 100% 準確
+var TIMEZONE = "Asia/Taipei";
 
 function doGet(e) {
   var action = e.parameter.action;
@@ -25,7 +28,17 @@ function doGet(e) {
   } else if (action === "getConfig") {
     return getConfig(callback);
   } else if (action === "addBooking") {
-    var data = JSON.parse(decodeURIComponent(e.parameter.data));
+    var rawData = e.parameter.data;
+    var data = null;
+    try {
+      data = JSON.parse(rawData);
+    } catch (err) {
+      try {
+        data = JSON.parse(decodeURIComponent(rawData));
+      } catch (err2) {
+        return createResponse({ success: false, error: "資料格式錯誤" }, callback);
+      }
+    }
     return addBooking(data, callback);
   } else if (action === "updateBookingStatus") {
     var id = e.parameter.id;
@@ -39,7 +52,13 @@ function doGet(e) {
     var id = e.parameter.id;
     return deleteBooking(id, callback);
   } else if (action === "saveConfig") {
-    var data = JSON.parse(decodeURIComponent(e.parameter.data));
+    var rawData = e.parameter.data;
+    var data = null;
+    try {
+      data = JSON.parse(rawData);
+    } catch (err) {
+      data = JSON.parse(decodeURIComponent(rawData));
+    }
     return saveConfig(data, callback);
   }
   
@@ -47,7 +66,6 @@ function doGet(e) {
 }
 
 function doPost(e) {
-  // 同步支援 POST 寫入作為備用
   var payload;
   try {
     payload = JSON.parse(e.postData.contents);
@@ -77,6 +95,58 @@ function doPost(e) {
   return createResponse({ error: "Invalid POST action" }, null);
 }
 
+// 標準化日期為 YYYY-MM-DD
+function formatCellDate(val) {
+  if (!val) return "";
+  if (Object.prototype.toString.call(val) === "[object Date]" && !isNaN(val.getTime())) {
+    return Utilities.formatDate(val, TIMEZONE, "yyyy-MM-dd");
+  }
+  var s = val.toString().trim();
+  if (s.indexOf("T") !== -1) {
+    var d = new Date(s);
+    if (!isNaN(d.getTime())) {
+      return Utilities.formatDate(d, TIMEZONE, "yyyy-MM-dd");
+    }
+  }
+  if (s.indexOf("/") !== -1) {
+    var parts = s.split("/");
+    if (parts.length === 3) {
+      var y = parts[0];
+      var m = parts[1].length === 1 ? "0" + parts[1] : parts[1];
+      var day = parts[2].length === 1 ? "0" + parts[2] : parts[2];
+      return y + "-" + m + "-" + day;
+    }
+  }
+  if (s.length >= 10) {
+    return s.substring(0, 10).replace(/\//g, "-");
+  }
+  return s;
+}
+
+// 標準化時間為 HH:mm
+function formatCellTime(val) {
+  if (!val) return "";
+  if (Object.prototype.toString.call(val) === "[object Date]" && !isNaN(val.getTime())) {
+    return Utilities.formatDate(val, TIMEZONE, "HH:mm");
+  }
+  var s = val.toString().trim();
+  if (s.indexOf("T") !== -1) {
+    var d = new Date(s);
+    if (!isNaN(d.getTime())) {
+      return Utilities.formatDate(d, TIMEZONE, "HH:mm");
+    }
+  }
+  if (s.indexOf(":") !== -1) {
+    var parts = s.split(":");
+    var h = parts[0].trim();
+    var m = parts[1].trim();
+    if (h.length === 1) h = "0" + h;
+    if (m.length === 1) m = "0" + m;
+    return h + ":" + m.substring(0, 2);
+  }
+  return s;
+}
+
 // 顧客前台專用：只回傳時段與狀態（徹底過濾姓名、電話、LINE ID、備註等個人隱私）
 function getPublicBookings(callback) {
   var sheet = getOrCreateSheet("Bookings");
@@ -85,24 +155,32 @@ function getPublicBookings(callback) {
   
   if (lastRow > 1) {
     var headers = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0];
-    var data = sheet.getRange(2, 1, lastRow - 1, sheet.getLastColumn()).getValues();
+    var displayData = sheet.getRange(2, 1, lastRow - 1, sheet.getLastColumn()).getDisplayValues();
+    var rawData = sheet.getRange(2, 1, lastRow - 1, sheet.getLastColumn()).getValues();
     
     var dateIdx = headers.indexOf("date");
     var timeIdx = headers.indexOf("time");
     var statusIdx = headers.indexOf("status");
     
-    // 若標頭未找到，退回標準欄位索引 (date:4, time:5, status:11)
     if (dateIdx === -1) dateIdx = 4;
     if (timeIdx === -1) timeIdx = 5;
     if (statusIdx === -1) statusIdx = 11;
     
-    for (var i = 0; i < data.length; i++) {
-      var row = data[i];
-      slots.push({
-        date: row[dateIdx],
-        time: row[timeIdx],
-        status: row[statusIdx] || "待確認"
-      });
+    for (var i = 0; i < displayData.length; i++) {
+      var dRow = displayData[i];
+      var rRow = rawData[i];
+      
+      var cleanDate = formatCellDate(dRow[dateIdx]) || formatCellDate(rRow[dateIdx]);
+      var cleanTime = formatCellTime(dRow[timeIdx]) || formatCellTime(rRow[timeIdx]);
+      var status = (dRow[statusIdx] || rRow[statusIdx] || "待確認").toString().trim();
+      
+      if (cleanDate && cleanTime) {
+        slots.push({
+          date: cleanDate,
+          time: cleanTime,
+          status: status
+        });
+      }
     }
   }
   return createResponse(slots, callback);
@@ -116,13 +194,22 @@ function getFullBookings(callback) {
   
   if (lastRow > 1) {
     var headers = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0];
-    var data = sheet.getRange(2, 1, lastRow - 1, sheet.getLastColumn()).getValues();
+    var displayData = sheet.getRange(2, 1, lastRow - 1, sheet.getLastColumn()).getDisplayValues();
+    var rawData = sheet.getRange(2, 1, lastRow - 1, sheet.getLastColumn()).getValues();
     
-    for (var i = 0; i < data.length; i++) {
-      var row = data[i];
+    for (var i = 0; i < displayData.length; i++) {
+      var dRow = displayData[i];
+      var rRow = rawData[i];
       var booking = {};
       for (var j = 0; j < headers.length; j++) {
-        booking[headers[j]] = row[j];
+        var key = headers[j];
+        if (key === "date") {
+          booking[key] = formatCellDate(dRow[j]) || formatCellDate(rRow[j]);
+        } else if (key === "time") {
+          booking[key] = formatCellTime(dRow[j]) || formatCellTime(rRow[j]);
+        } else {
+          booking[key] = dRow[j] !== "" ? dRow[j] : rRow[j];
+        }
       }
       bookings.push(booking);
     }
@@ -135,37 +222,61 @@ function getBookings(callback) {
   return getPublicBookings(callback);
 }
 
-// 新增預約 (含雲端衝突防護)
+// 新增預約 (含高併發排他鎖與雲端防重複時段檢查)
 function addBooking(bookingData, callback) {
-  var sheet = getOrCreateSheet("Bookings");
-  var headers = ["id", "name", "phone", "line", "date", "time", "material", "position", "potion", "totalPrice", "note", "status", "createTime"];
-  
-  // 檢查並建立標頭
-  if (sheet.getLastRow() === 0) {
-    sheet.appendRow(headers);
+  if (!bookingData || !bookingData.date || !bookingData.time) {
+    return createResponse({ success: false, error: "預約資料不完整" }, callback);
   }
-  
-  // 進行防重複預約的雲端最終檢查
-  var lastRow = sheet.getLastRow();
-  if (lastRow > 1) {
-    var data = sheet.getRange(2, 1, lastRow - 1, sheet.getLastColumn()).getValues();
-    for (var i = 0; i < data.length; i++) {
-      var row = data[i];
-      // 比對日期 (索引 4) 與時間 (索引 5) 且狀態 (索引 11) 不是「已取消」
-      if (row[4].toString() === bookingData.date.toString() && 
-          row[5].toString() === bookingData.time.toString() && 
-          row[11].toString() !== "已取消") {
-        return createResponse({ success: false, conflict: true, error: "這個時段已被他人預約佔用！" }, callback);
+
+  var lock = LockService.getScriptLock();
+  try {
+    // 等待最多 10 秒取得執行鎖，保證多人同時預約不會發生時段衝突
+    lock.waitLock(10000);
+  } catch (e) {
+    return createResponse({ success: false, error: "系統忙碌中，請稍後再試！" }, callback);
+  }
+
+  try {
+    var sheet = getOrCreateSheet("Bookings");
+    var headers = ["id", "name", "phone", "line", "date", "time", "material", "position", "potion", "totalPrice", "note", "status", "createTime"];
+    
+    if (sheet.getLastRow() === 0) {
+      sheet.appendRow(headers);
+    }
+    
+    var targetDate = formatCellDate(bookingData.date);
+    var targetTime = formatCellTime(bookingData.time);
+    
+    var lastRow = sheet.getLastRow();
+    if (lastRow > 1) {
+      var displayData = sheet.getRange(2, 1, lastRow - 1, sheet.getLastColumn()).getDisplayValues();
+      var rawData = sheet.getRange(2, 1, lastRow - 1, sheet.getLastColumn()).getValues();
+      
+      for (var i = 0; i < displayData.length; i++) {
+        var dRow = displayData[i];
+        var rRow = rawData[i];
+        
+        var rowDate = formatCellDate(dRow[4]) || formatCellDate(rRow[4]);
+        var rowTime = formatCellTime(dRow[5]) || formatCellTime(rRow[5]);
+        var status = (dRow[11] || rRow[11] || "待確認").toString().trim();
+        
+        if (rowDate === targetDate && rowTime === targetTime && status !== "已取消") {
+          return createResponse({ success: false, conflict: true, error: "抱歉！該時段剛剛已被其他顧客預約走了，請選擇其他時段！" }, callback);
+        }
       }
     }
+    
+    var newRow = headers.map(function(key) {
+      if (key === "date") return targetDate;
+      if (key === "time") return targetTime;
+      return bookingData[key] !== undefined ? bookingData[key] : "";
+    });
+    
+    sheet.appendRow(newRow);
+    return createResponse({ success: true }, callback);
+  } finally {
+    lock.releaseLock();
   }
-  
-  var newRow = headers.map(function(key) {
-    return bookingData[key] !== undefined ? bookingData[key] : "";
-  });
-  
-  sheet.appendRow(newRow);
-  return createResponse({ success: true }, callback);
 }
 
 // 修改預約狀態
@@ -273,7 +384,7 @@ function getOrCreateSheet(name) {
   return sheet;
 }
 
-// 建立跨網域回傳物件 (支援 JSONP)
+// 建立跨網域回傳物件 (支援 JSON 與 JSONP)
 function createResponse(data, callbackName) {
   var jsonString = JSON.stringify(data);
   if (callbackName) {
